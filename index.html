@@ -1,1192 +1,556 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Power Calculator | ReVolt</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Power Calculator | ReVolt</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    :root {
-      --bg:           #080808;
-      --surface:      #0f0f0f;
-      --card:         #141414;
-      --card-hover:   #1a1a1a;
-      --border:       #222;
-      --border-light: #2c2c2c;
-      --green:        #3ddc84;
-      --green-glow:   rgba(61,220,132,0.12);
-      --green-dim:    #0f2a1a;
-      --orange:       #f97316;
-      --orange-dim:   #2a1008;
-      --yellow:       #fbbf24;
-      --text:         #f2f2f2;
-      --text-muted:   #aaa;
-      --text-dim:     #6a6a6a;
-      --radius:       8px;
-      --radius-sm:    5px;
-      --font-display: 'Bebas Neue', sans-serif;
-      --font-body:    'Barlow', sans-serif;
-      --font-mono:    'DM Mono', monospace;
-    }
+:root{
+  --bg:#080808;
+  --surface:#0f0f0f;
+  --card:#141414;
+  --card-hover:#1a1a1a;
+  --border:#222;
+  --border-light:#2c2c2c;
+  --green:#3ddc84;
+  --green-glow:rgba(61,220,132,0.1);
+  --green-dim:#0f2a1a;
+  --orange:#f97316;
+  --orange-dim:#2a1008;
+  --yellow:#fbbf24;
+  --yellow-dim:#2a1e00;
+  --text:#f2f2f2;
+  --text-muted:#aaa;
+  --text-dim:#6a6a6a;
+  --radius:8px;
+  --radius-sm:5px;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-body:'Barlow',sans-serif;
+  --font-mono:'DM Mono',monospace;
+}
 
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-body);
-      line-height: 1.5;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);line-height:1.5;
+  min-height:100vh;-webkit-font-smoothing:antialiased;}
 
-    /* ─── HEADER ─── */
-    .rc-header {
-      background: #050505;
-      border-bottom: 1px solid var(--border);
-      padding: 14px 36px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .rc-logo-wrap { display: flex; align-items: center; gap: 14px; }
-    .rc-logo {
-      font-family: var(--font-display);
-      font-size: 28px;
-      letter-spacing: 0.12em;
-      color: var(--text);
-      line-height: 1;
-    }
-    .rc-logo-divider {
-      width: 1px; height: 24px;
-      background: var(--border-light);
-    }
-    .rc-logo-sub {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .rc-header-cta {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .rc-header-cta a { color: var(--green); text-decoration: none; }
+/* ── Light mode ── */
+body.light-mode{
+  --bg:#f0f0f0;--surface:#e8e8e8;--card:#fff;--card-hover:#f5f5f5;
+  --border:#d8d8d8;--border-light:#c8c8c8;--green-dim:#d4f5e4;
+  --orange-dim:#fde8d8;--text:#111;--text-muted:#555;--text-dim:#888;
+}
+body.light-mode .rc-header{background:#e8e8e8}
+body.light-mode .rc-hero{background:linear-gradient(160deg,#d4f0e0 0%,#f0f0f0 55%)}
+body.light-mode .rc-qty-btn{background:#e0e0e0;border-color:#bbb;color:#222}
+body.light-mode .rc-qty-btn:hover{background:var(--green);color:#000;border-color:var(--green)}
+body.light-mode .rc-browse-item:hover{background:#f0f0f0}
+body.light-mode .rc-browse-item.selected{background:#e0f5ec}
+body.light-mode .rc-cart-row:hover{background:#f5f5f5}
+body.light-mode .rc-stats-strip{background:#e8e8e8}
+body.light-mode .rc-stat-card{background:#fff;border-color:#d0d0d0}
+body.light-mode .rc-gen-selector{background:#fff;border-color:#d0d0d0}
+body.light-mode .rc-gen-arrow{background:#e0e0e0;border-color:#bbb;color:#555}
 
-    /* ─── HERO ─── */
-    .rc-hero {
-      background: linear-gradient(170deg, #0b1f12 0%, #080808 50%);
-      padding: 44px 36px 32px;
-      border-bottom: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    .rc-hero::after {
-      content: '';
-      position: absolute;
-      top: 0; right: 0; bottom: 0;
-      width: 40%;
-      background: radial-gradient(ellipse at 80% 50%, rgba(61,220,132,0.04) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .rc-hero h1 {
-      font-family: var(--font-display);
-      font-size: clamp(32px, 4.5vw, 56px);
-      letter-spacing: 0.04em;
-      line-height: 1;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-    .rc-hero h1 em { font-style: normal; color: var(--green); }
-    .rc-hero p {
-      color: var(--text-muted);
-      font-size: 14px;
-      max-width: 500px;
-      font-weight: 400;
-    }
+/* ── HEADER ── */
+.rc-header{
+  background:#050505;border-bottom:1px solid var(--border);
+  padding:14px 32px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.rc-logo-wrap{display:flex;align-items:center;gap:14px}
+.rc-logo{font-family:var(--font-display);font-size:26px;letter-spacing:.12em;color:var(--text);line-height:1}
+.rc-logo-div{width:1px;height:22px;background:var(--border-light)}
+.rc-logo-sub{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
+.rc-header-right{display:flex;align-items:center;gap:16px}
+.rc-mode-toggle{
+  display:flex;align-items:center;gap:7px;background:transparent;
+  border:1px solid var(--border-light);border-radius:20px;padding:5px 12px;
+  color:var(--text-muted);font-family:var(--font-body);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.rc-mode-toggle:hover{border-color:var(--green);color:var(--green)}
+.rc-header-cta{font-size:12px;color:var(--text-muted)}
+.rc-header-cta a{color:var(--green);text-decoration:none}
 
-    /* ─── RECOMMENDATIONS BAR ─── */
-    .rc-rec-bar {
-      background: #0a0a0a;
-      border-bottom: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    .rc-rec-bar::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(160deg, var(--green-glow) 0%, transparent 50%);
-      opacity: 0;
-      transition: opacity 0.6s ease;
-      pointer-events: none;
-    }
-    .rc-rec-bar.active::before { opacity: 1; }
+/* ── HERO ── */
+.rc-hero{
+  background:linear-gradient(160deg,#0b1f12 0%,#080808 55%);
+  padding:32px 32px 22px;border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.rc-hero::after{
+  content:'';position:absolute;top:0;right:0;bottom:0;width:40%;
+  background:radial-gradient(ellipse at 80% 50%,rgba(61,220,132,.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+.rc-hero h1{
+  font-family:var(--font-display);font-size:clamp(30px,4vw,52px);
+  letter-spacing:.04em;line-height:1;text-transform:uppercase;margin-bottom:10px;
+}
+.rc-hero h1 em{font-style:normal;color:var(--green)}
+.rc-hero p{color:var(--text-muted);font-size:14px;max-width:480px}
 
-    /* Dormant */
-    .rc-rec-dormant {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 20px 36px;
-      color: var(--text-dim);
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-    }
-    .rc-rec-dormant-pulse { display: flex; gap: 4px; }
-    .rc-rec-dormant-dot {
-      width: 5px; height: 5px;
-      background: var(--text-dim);
-      border-radius: 50%;
-      animation: dormantPulse 2s ease-in-out infinite;
-    }
-    .rc-rec-dormant-dot:nth-child(2) { animation-delay: 0.3s; }
-    .rc-rec-dormant-dot:nth-child(3) { animation-delay: 0.6s; }
-    @keyframes dormantPulse { 0%,100%{opacity:0.2} 50%{opacity:0.6} }
+/* ── MAIN LAYOUT ── */
+.rc-left-col{display:flex;flex-direction:column;height:100%;}
+.rc-wrap{
+  display:grid;
+  grid-template-columns:1fr 360px;
+  gap:20px;
+  padding:20px 32px;
+  max-width:1280px;
+  margin:0 auto;
+  align-items:stretch;
+}
 
-    /* Active wrapper — stacked layout */
-    .rc-rec-active { display: none; flex-direction: column; width: 100%; }
-    .rc-rec-bar.active .rc-rec-dormant { display: none; }
-    .rc-rec-bar.active .rc-rec-active  { display: flex; }
+/* ── LEFT PANEL — unified bordered container ── */
+.rc-left{
+  display:flex;flex-direction:column;gap:0;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  flex:1;
+}
 
-    /* Top row: WeVolt + Mule side by side */
-    .rc-rec-top-row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      border-bottom: 1px solid var(--border);
-    }
-    .rc-rec-or-divider {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      color: var(--text-dim);
-      border-left: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-    }
-    .rc-rec-mixed-divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 28px;
-      border-bottom: 1px solid var(--border);
-      background: #0c0c0c;
-    }
-    .rc-rec-mixed-divider-line {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-    .rc-rec-mixed-divider-text {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      white-space: nowrap;
-    }
-    .rc-rec-unit {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 28px;
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-    .rc-rec-unit:first-child { border-right: 1px solid var(--border); }
-    .rc-rec-unit.show { opacity: 1; transform: translateY(0); }
-    .rc-rec-unit:nth-child(2) { transition-delay: 0.12s; }
+/* Chips */
+.rc-chips-wrap{
+  padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.rc-chips-label{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:9px;
+}
+.rc-chips-row{display:flex;flex-wrap:wrap;gap:5px;}
+.rc-chip{
+  padding:4px 10px;border:1px solid var(--border-light);border-radius:20px;
+  font-size:11px;font-weight:600;color:var(--text-muted);background:transparent;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.rc-chip:hover{border-color:var(--green);color:var(--green)}
+.rc-chip.active{background:var(--green-dim);border-color:rgba(61,220,132,.4);color:var(--green)}
+.rc-chip-clear{
+  padding:4px 10px;border:1px solid rgba(61,220,132,.4);border-radius:20px;
+  font-size:11px;font-weight:600;color:var(--green);background:var(--green-dim);
+  cursor:pointer;transition:all .15s;
+}
+.rc-chip-clear:hover{background:rgba(61,220,132,.15)}
 
-    .rc-rec-badge {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 3px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .rc-rec-badge.wevolt { background: var(--green-dim); color: var(--green); border: 1px solid rgba(61,220,132,0.2); }
-    .rc-rec-badge.mule   { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(249,115,22,0.2); }
-    .rc-rec-badge.mixed  { background: #1a1a0a; color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+/* Tabs */
+.rc-tabs{
+  display:grid;grid-template-columns:1fr 1fr;
+  background:#0f0f0f;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.rc-tab{
+  padding:11px 16px;font-family:var(--font-display);font-size:15px;
+  letter-spacing:.1em;color:var(--text-dim);background:transparent;
+  border:none;cursor:pointer;transition:all .15s;
+  border-right:1px solid var(--border);display:flex;align-items:center;gap:7px;
+}
+.rc-tab:last-child{border-right:none}
+.rc-tab:hover{color:var(--text-muted);background:var(--card-hover)}
+.rc-tab.active{color:var(--green);background:var(--green-dim)}
 
-    .rc-rec-count {
-      font-family: var(--font-display);
-      font-size: 42px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-    .rc-rec-count.pulse { animation: countPulse 0.25s ease; }
-    @keyframes countPulse { 0%{transform:scale(1)} 50%{transform:scale(1.18)} 100%{transform:scale(1)} }
-    .rc-rec-count.wevolt { color: var(--green); }
-    .rc-rec-count.mule   { color: var(--orange); }
-    .rc-rec-count.mixed-w { color: var(--green); }
-    .rc-rec-count.mixed-m { color: var(--orange); }
-    .rc-rec-count-sep { font-family: var(--font-display); font-size: 24px; color: var(--text-dim); }
+/* Browse panel */
+.rc-browse-wrap{display:flex;flex-direction:column;}
+.rc-search-row{
+  display:flex;align-items:center;gap:10px;padding:10px 15px;
+  border-bottom:1px solid var(--border);background:#111;flex-shrink:0;
+}
+.rc-search-icon{color:var(--text-dim);font-size:14px;flex-shrink:0}
+.rc-search-input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+}
+.rc-search-input::placeholder{color:var(--text-dim)}
+.rc-search-count{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0}
+.rc-browse-list{height:520px;overflow-y:auto;}
+.rc-browse-list::-webkit-scrollbar{width:3px}
+.rc-browse-list::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+.rc-cat-label{
+  padding:6px 15px;font-size:9px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-dim);background:#0f0f0f;
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;
+}
+.rc-browse-item{
+  display:flex;align-items:center;gap:11px;padding:9px 15px;
+  border-bottom:1px solid #1a1a1a;cursor:pointer;transition:background .1s;
+}
+.rc-browse-item:last-child{border-bottom:none}
+.rc-browse-item:hover{background:#1a1a1a}
+.rc-browse-item.selected{background:#0e2018}
+.rc-checkbox{
+  width:16px;height:16px;border:1.5px solid var(--border-light);border-radius:3px;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.rc-browse-item.selected .rc-checkbox{background:var(--green);border-color:var(--green)}
+.rc-checkbox-tick{display:none;color:#000;font-size:10px;font-weight:800;line-height:1}
+.rc-browse-item.selected .rc-checkbox-tick{display:block}
+.rc-item-info{flex:1;min-width:0}
+.rc-item-name{font-size:13px;font-weight:500;color:var(--text)}
+.rc-item-watts{font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-top:1px}
+.rc-item-kw{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0}
+.rc-browse-empty{padding:36px 16px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.8}
 
-    .rc-rec-unit-detail { flex: 1; min-width: 0; }
-    .rc-rec-unit-name {
-      font-family: var(--font-display);
-      font-size: 18px;
-      letter-spacing: 0.06em;
-      color: var(--text);
-    }
-    .rc-rec-unit-runtime {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 3px;
-    }
+/* Custom panel */
+.rc-custom-wrap{height:520px;overflow-y:auto;padding:16px;}
+.rc-custom-wrap::-webkit-scrollbar{width:3px}
+.rc-custom-wrap::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+.rc-custom-intro{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6}
+.rc-custom-items{display:flex;flex-direction:column;gap:10px}
+.rc-custom-row-wrap{display:flex;align-items:flex-start;gap:8px}
+.rc-custom-item{
+  background:#0f0f0f;border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px;flex:1;min-width:0;
+}
+.rc-custom-field-labels{
+  display:grid;grid-template-columns:1fr 90px 64px;gap:7px;margin-bottom:6px;
+}
+.rc-custom-field-label{
+  font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-dim);padding-left:2px;
+}
+.rc-custom-fields{display:grid;grid-template-columns:1fr 90px 64px;gap:7px;margin-bottom:8px}
+.rc-custom-input{
+  background:var(--card);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+  padding:7px 10px;outline:none;width:100%;transition:border-color .15s;
+}
+.rc-custom-input:focus{border-color:var(--green)}
+.rc-custom-input::placeholder{color:var(--text-dim)}
+.rc-custom-footer{display:flex;align-items:center;gap:8px}
+.rc-custom-conf{
+  background:var(--card);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text-muted);font-family:var(--font-body);font-size:12px;
+  padding:6px 10px;outline:none;cursor:pointer;flex:1;
+}
+.rc-gemini-alert{
+  display:none;align-items:center;gap:6px;font-size:11px;color:var(--yellow);
+  background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);
+  border-radius:5px;padding:5px 9px;flex:1;
+}
+.rc-gemini-alert.show{display:flex}
+.rc-gemini-accept{
+  background:var(--green);color:#000;border:none;border-radius:3px;
+  font-size:10px;font-weight:700;padding:3px 7px;cursor:pointer;white-space:nowrap;
+}
+.rc-gemini-keep{background:transparent;border:none;color:var(--text-dim);font-size:10px;padding:3px 5px;cursor:pointer}
+.rc-custom-del{
+  width:28px;height:28px;background:#1a1a1a;border:1px solid var(--border-light);
+  border-radius:var(--radius-sm);color:var(--text-dim);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+  flex-shrink:0;margin-top:24px;
+}
+.rc-custom-del:hover{background:#2a1010;color:#ef4444;border-color:#ef4444}
+.rc-add-custom-btn{
+  width:100%;margin-top:12px;padding:10px;background:transparent;
+  border:1px dashed var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text-muted);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:all .2s;
+}
+.rc-add-custom-btn:hover{border-color:var(--green);color:var(--green)}
 
-    /* Bottom: Mixed full-width */
-    .rc-rec-mixed {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      padding: 16px 28px;
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.4s ease 0.22s, transform 0.4s ease 0.22s;
-    }
-    .rc-rec-mixed.show { opacity: 1; transform: translateY(0); }
+/* Stats strip (hidden - replaced by card) */
+.rc-stats-strip{ display:none; }
 
-    .rc-mixed-counts {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-    .rc-mixed-detail { flex: 1; min-width: 0; }
-    .rc-mixed-config-name {
-      font-family: var(--font-display);
-      font-size: 17px;
-      letter-spacing: 0.05em;
-      color: var(--text);
-      margin-bottom: 2px;
-    }
-    .rc-mixed-concept {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-    .rc-mixed-runtime {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      margin-top: 3px;
-    }
-    .rc-mixed-nav {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      flex-shrink: 0;
-    }
-    .rc-mixed-arrow {
-      width: 24px; height: 24px;
-      background: #1a1a1a;
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      color: var(--text-muted);
-      font-size: 10px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s;
-    }
-    .rc-mixed-arrow:hover { background: #1a2a1a; color: var(--yellow); border-color: rgba(251,191,36,0.4); }
-    .rc-mixed-idx {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-dim);
-    }
+/* Stats card — own bordered box below browse panel */
+.rc-stats-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:10px 13px;margin-top:12px;flex-shrink:0;
+  display:grid;grid-template-columns:100px repeat(4,1fr);gap:8px;
+  align-items:stretch;
+}
+body.light-mode .rc-stats-card{background:#fff;border-color:#d0d0d0;}
+.rc-gen-selector{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:9px 7px;gap:4px;
+}
+.rc-gen-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);text-align:center}
+.rc-gen-arrow{
+  width:26px;height:22px;background:#1e1e1e;border:1px solid var(--border-light);
+  border-radius:4px;color:var(--text-muted);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.rc-gen-arrow:hover{background:var(--green-dim);color:var(--green);border-color:rgba(61,220,132,.4)}
+.rc-gen-info{text-align:center;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.rc-gen-type{font-family:var(--font-display);font-size:16px;letter-spacing:.04em;color:var(--text);line-height:1.1}
+.rc-gen-rate{font-family:var(--font-mono);font-size:10px;color:var(--text-muted)}
+.rc-gen-idx{font-family:var(--font-mono);font-size:9px;color:var(--text-dim)}
+.rc-stat-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 11px;display:flex;flex-direction:column;gap:2px;
+}
+.rc-stat-icon{font-size:13px;margin-bottom:1px}
+.rc-stat-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+.rc-stat-value{font-family:var(--font-display);font-size:20px;line-height:1;color:var(--green);transition:color .3s}
+.rc-stat-value.zero{color:var(--text-dim);font-size:16px}
+.rc-stat-unit{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:1px}
 
-    /* ─── MAIN GRID ─── */
-    .rc-main {
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 20px;
-      max-width: 1240px;
-      margin: 0 auto;
-      padding: 20px 36px;
-      height: calc(100vh - 52px - 110px - var(--recbar-h, 130px));
-      min-height: 500px;
-      align-items: stretch;
-      overflow: hidden;
-    }
+/* ── RIGHT COLUMN ── */
+.rc-right{
+  display:flex;flex-direction:column;gap:10px;height:100%;
+}
 
-    /* Left col: unified panel that fills height */
-    .rc-left {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      overflow: hidden;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
+/* Reset */
+.rc-reset{
+  width:100%;background:#000;border:1px solid var(--green);border-radius:var(--radius-sm);
+  color:var(--green);font-family:var(--font-display);font-size:14px;
+  letter-spacing:.1em;padding:10px;cursor:pointer;transition:all .15s;flex-shrink:0;
+}
+.rc-reset:hover{background:var(--green-dim)}
 
-    /* Right col: fixed dashboard — never scrolls as a whole */
-    .rc-right {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      height: 100%;
-      overflow: hidden;
-    }
+/* Cart */
+.rc-cart{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;display:flex;flex-direction:column;
+  height:340px;flex-shrink:0;
+}
+.rc-cart-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 15px;border-bottom:1px solid var(--border);background:#111;flex-shrink:0;
+}
+.rc-cart-title{font-family:var(--font-display);font-size:14px;letter-spacing:.1em;color:var(--text-muted)}
+.rc-cart-meta{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.rc-cart-scroll{overflow-y:auto;flex:1}
+.rc-cart-scroll::-webkit-scrollbar{width:3px}
+.rc-cart-scroll::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+.rc-cart-empty{padding:22px 15px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.8}
+.rc-cart-list{}
+.rc-cart-row{
+  display:flex;align-items:center;gap:8px;padding:8px 15px;
+  border-bottom:1px solid #1a1a1a;transition:background .1s;
+}
+.rc-cart-row:last-child{border-bottom:none}
+.rc-cart-row:hover{background:#1a1a1a}
+.rc-cat-pip{width:3px;height:24px;border-radius:2px;flex-shrink:0}
+.rc-cart-info{flex:1;min-width:0}
+.rc-cart-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-cart-spec{font-size:10px;color:var(--text-dim);font-family:var(--font-mono);margin-top:1px}
+.rc-qty{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.rc-qty-btn{
+  width:22px;height:22px;background:#2e2e2e;border:1px solid #444;
+  border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;line-height:1;
+}
+.rc-qty-btn:hover{background:var(--green);color:#000;border-color:var(--green)}
+.rc-qty-num{width:22px;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text)}
+.rc-cart-kw{font-family:var(--font-mono);font-size:11px;color:var(--green);min-width:42px;text-align:right;flex-shrink:0}
+.rc-cart-rm{
+  width:20px;height:20px;background:transparent;border:none;color:var(--text-dim);
+  font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  border-radius:3px;flex-shrink:0;transition:all .12s;
+}
+.rc-cart-rm:hover{background:#2a1010;color:#ef4444}
+.rc-cart-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 15px;background:#0f0f0f;border-top:1px solid var(--border);flex-shrink:0;
+}
+.rc-cart-foot-label{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.rc-cart-foot-kw{font-family:var(--font-mono);font-size:13px;color:var(--green)}
 
-    /* Cart: grows but caps, scrolls internally */
-    .rc-cart {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 80px;
-      max-height: 35vh;
-      flex-shrink: 1;
-    }
+/* Duration + Buffer */
+.rc-dur-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:15px;flex-shrink:0;
+}
+.rc-dur-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.rc-dur-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.rc-dur-val{font-family:var(--font-display);font-size:22px;color:var(--green);line-height:1}
+.rc-dur-val span{font-family:var(--font-body);font-size:11px;color:var(--text-muted);margin-left:3px;font-weight:500}
+input[type="range"]{
+  -webkit-appearance:none;width:100%;height:2px;background:#2a2a2a;border-radius:2px;outline:none;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;background:var(--green);border-radius:50%;
+  cursor:pointer;box-shadow:0 0 0 3px rgba(61,220,132,.15);transition:box-shadow .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(61,220,132,.2)}
+.rc-buffer-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+}
+.rc-buffer-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.rc-buffer-stops{display:flex;gap:5px}
+.rc-buffer-stop{
+  padding:4px 10px;border:1px solid var(--border-light);border-radius:4px;
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  background:transparent;cursor:pointer;transition:all .15s;
+}
+.rc-buffer-stop:hover{border-color:var(--green);color:var(--green)}
+.rc-buffer-stop.active{background:var(--green-dim);border-color:rgba(61,220,132,.4);color:var(--green);font-weight:700}
 
-    /* Duration, Power Summary, Reset: locked at bottom, never shrink */
-    .rc-dur-card,
-    .rc-power-card,
-    .rc-reset { flex-shrink: 0; }
+/* Power summary */
+.rc-power-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:15px;flex-shrink:0;
+}
+.rc-section-tag{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px}
+.rc-kw-big{font-family:var(--font-display);font-size:60px;line-height:1;letter-spacing:.01em;transition:color .3s;margin-bottom:4px}
+.rc-kw-unit{font-size:22px;color:var(--text-muted)}
+.rc-kw-big.zero{color:#2a2a2a}
+.rc-kw-big.low{color:var(--green)}
+.rc-kw-big.mid{color:var(--yellow)}
+.rc-kw-big.high{color:var(--orange)}
+.rc-kwh-row{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px}
+.rc-kwh-row strong{color:var(--text)}
+.rc-buffer-note{font-size:10px;color:var(--text-dim);background:#0f0f0f;border-radius:var(--radius-sm);padding:5px 9px;margin-bottom:12px}
+.rc-breakdown{display:flex;flex-direction:column;gap:3px}
+.rc-bd-row{display:flex;align-items:center;gap:7px}
+.rc-bd-pip{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.rc-bd-name{font-size:11px;color:var(--text-muted);flex:1}
+.rc-bd-kw{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
 
-    @media (max-width: 960px) {
-      .rc-main {
-        grid-template-columns: 1fr;
-        height: auto;
-        overflow: visible;
-        padding: 16px;
-      }
-      .rc-left { overflow: visible; padding-right: 0; }
-      .rc-right { height: auto; overflow: visible; }
-      .rc-cart { max-height: 50vh; }
-      .rc-header { padding: 12px 16px; }
-      .rc-hero { padding: 32px 16px 24px; }
-    }
+/* CTA */
+.rc-cta-card{
+  background:linear-gradient(135deg,#0d2118,#091510);
+  border:1px solid #1c3d28;border-radius:var(--radius);padding:22px 15px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;
+  margin-top:auto;
+}
+.rc-cta-left h3{font-family:var(--font-display);font-size:17px;letter-spacing:.06em;margin-bottom:2px}
+.rc-cta-left p{font-size:11px;color:var(--text-muted)}
+.rc-cta-right{flex-shrink:0;text-align:right}
+.rc-cta-btn{
+  display:inline-flex;align-items:center;background:var(--green);color:#000;
+  font-family:var(--font-display);font-size:14px;letter-spacing:.08em;
+  padding:10px 18px;border-radius:var(--radius-sm);text-decoration:none;
+  border:none;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.rc-cta-btn:hover{background:#5ae89a;transform:translateY(-1px);box-shadow:0 4px 16px rgba(61,220,132,.25)}
+.rc-cta-sub{font-size:10px;color:var(--text-dim);margin-top:5px}
+.rc-cta-sub a{color:var(--text-muted);text-decoration:none}
 
-    /* Chips */
-    .rc-chips-wrap {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 16px;
-      flex-shrink: 0;
-    }
-    .rc-chips-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 10px;
-    }
-    .rc-chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .rc-chip {
-      padding: 5px 12px;
-      border: 1px solid var(--border-light);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      background: transparent;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .rc-chip:hover { border-color: var(--green); color: var(--green); }
-    .rc-chip.active { background: var(--green-dim); border-color: rgba(61,220,132,0.4); color: var(--green); }
-    .rc-chip-clear {
-      padding: 5px 12px;
-      border: 1px solid rgba(61,220,132,0.4);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--green);
-      background: var(--green-dim);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .rc-chip-clear:hover { background: rgba(61,220,132,0.15); border-color: var(--green); }
+/* ── REC BOXES — 3-col full width below main grid ── */
+.rc-rec-section{
+  max-width:1280px;margin:0 auto;
+  padding:0 32px 24px;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:16px;
+}
 
-    /* Tabs */
-    .rc-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      background: #0f0f0f;
-      border-bottom: 1px solid var(--border);
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .rc-tab {
-      padding: 11px 16px;
-      font-family: var(--font-display);
-      font-size: 16px;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.15s;
-      border-right: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .rc-tab:last-child { border-right: none; }
-    .rc-tab:hover { color: var(--text-muted); background: var(--card-hover); }
-    .rc-tab.active { color: var(--green); background: var(--green-dim); }
-    .rc-tab-icon { font-size: 14px; }
+/* Dormant overlay — shown when no load */
+.rc-rec-dormant-bar{
+  max-width:1280px;margin:0 auto;padding:0 32px 20px;
+}
+.rc-rec-dormant-inner{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 24px;display:flex;align-items:center;gap:12px;
+  color:var(--text-dim);font-size:13px;font-weight:500;letter-spacing:.04em;
+}
+.rc-dormant-dots{display:flex;gap:4px}
+.rc-dormant-dot{
+  width:5px;height:5px;background:var(--text-dim);border-radius:50%;
+  animation:dormPulse 2s ease-in-out infinite;
+}
+.rc-dormant-dot:nth-child(2){animation-delay:.3s}
+.rc-dormant-dot:nth-child(3){animation-delay:.6s}
+@keyframes dormPulse{0%,100%{opacity:.15}50%{opacity:.5}}
 
-    /* Browse panel */
-    .rc-browse {
-      background: var(--card);
-      overflow: hidden;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-    .rc-search-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 11px 15px;
-      border-bottom: 1px solid var(--border);
-      background: #111;
-    }
-    .rc-search-icon { color: var(--text-dim); font-size: 15px; flex-shrink: 0; }
-    .rc-search-input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text);
-      font-family: var(--font-body);
-      font-size: 13px;
-    }
-    .rc-search-input::placeholder { color: var(--text-dim); }
-    .rc-search-count {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      flex-shrink: 0;
-    }
+/* Individual rec box */
+.rc-rec-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  opacity:0;transform:translateY(10px);
+  transition:opacity .4s ease,transform .4s ease;
+}
+.rc-rec-box.show{opacity:1;transform:translateY(0)}
+.rc-rec-box:nth-child(2){transition-delay:.1s}
+.rc-rec-box:nth-child(3){transition-delay:.2s}
 
-    .rc-browse-list {
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
-    }
-    .rc-browse-list::-webkit-scrollbar { width: 3px; }
-    .rc-browse-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+/* Box top accent strip */
+.rc-rec-box-accent{height:3px;width:100%}
+.rc-rec-box.wevolt .rc-rec-box-accent{background:var(--green)}
+.rc-rec-box.mule   .rc-rec-box-accent{background:var(--orange)}
+.rc-rec-box.mixed  .rc-rec-box-accent{background:var(--yellow)}
 
-    .rc-cat-label {
-      padding: 7px 15px 5px;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      background: #0f0f0f;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    .rc-browse-item {
-      display: flex;
-      align-items: center;
-      gap: 11px;
-      padding: 9px 15px;
-      border-bottom: 1px solid #1a1a1a;
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-    .rc-browse-item:last-child { border-bottom: none; }
-    .rc-browse-item:hover { background: #1a1a1a; }
-    .rc-browse-item.selected { background: #0e2018; }
-    .rc-checkbox {
-      width: 16px; height: 16px;
-      border: 1.5px solid var(--border-light);
-      border-radius: 3px;
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-    }
-    .rc-browse-item.selected .rc-checkbox {
-      background: var(--green);
-      border-color: var(--green);
-    }
-    .rc-checkbox-tick { display: none; color: #000; font-size: 10px; font-weight: 800; line-height: 1; }
-    .rc-browse-item.selected .rc-checkbox-tick { display: block; }
-    .rc-item-info { flex: 1; min-width: 0; }
-    .rc-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
-    .rc-item-watts { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 1px; }
-    .rc-item-kw { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
-    .rc-browse-empty {
-      padding: 36px 16px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 13px;
-      line-height: 1.8;
-    }
+.rc-rec-box-inner{padding:18px}
 
-    /* Custom panel */
-    .rc-custom-panel {
-      background: var(--card);
-      padding: 18px;
-      flex: 1;
-      overflow-y: auto;
-    }
-    .rc-custom-panel::-webkit-scrollbar { width: 3px; }
-    .rc-custom-panel::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-    .rc-custom-intro {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-      line-height: 1.6;
-    }
-    .rc-custom-items { display: flex; flex-direction: column; gap: 10px; }
-    .rc-custom-row-wrap {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .rc-custom-item {
-      background: #0f0f0f;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 12px;
-      flex: 1;
-      min-width: 0;
-    }
-    .rc-custom-fields {
-      display: grid;
-      grid-template-columns: 1fr 90px 64px;
-      gap: 7px;
-      margin-bottom: 4px;
-    }
-    .rc-custom-field-labels {
-      display: grid;
-      grid-template-columns: 1fr 90px 64px;
-      gap: 7px;
-      margin-bottom: 6px;
-    }
-    .rc-custom-field-label {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      padding-left: 2px;
-    }
-    .rc-custom-input {
-      background: var(--card);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: var(--font-body);
-      font-size: 13px;
-      padding: 7px 10px;
-      outline: none;
-      width: 100%;
-      transition: border-color 0.15s;
-    }
-    .rc-custom-input:focus { border-color: var(--green); }
-    .rc-custom-input::placeholder { color: var(--text-dim); }
-    .rc-custom-footer {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .rc-custom-conf {
-      background: var(--card);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-family: var(--font-body);
-      font-size: 12px;
-      padding: 6px 10px;
-      outline: none;
-      cursor: pointer;
-      flex: 1;
-    }
-    .rc-gemini-alert {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--yellow);
-      background: rgba(251,191,36,0.06);
-      border: 1px solid rgba(251,191,36,0.2);
-      border-radius: 5px;
-      padding: 5px 9px;
-      flex: 1;
-    }
-    .rc-gemini-alert.show { display: flex; }
-    .rc-gemini-accept {
-      background: var(--green);
-      color: #000;
-      border: none;
-      border-radius: 3px;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 7px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .rc-gemini-keep {
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-size: 10px;
-      padding: 3px 5px;
-      cursor: pointer;
-    }
-    .rc-custom-del {
-      width: 28px;
-      height: 28px;
-      background: #1a1a1a;
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-sm);
-      color: var(--text-dim);
-      font-size: 14px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-      flex-shrink: 0;
-      margin-top: 24px;
-    }
-    .rc-custom-del:hover { background: #2a1010; color: #ef4444; border-color: #ef4444; }
-    body.light-mode .rc-custom-del { background: #e8e8e8; border-color: #ccc; color: #888; }
-    body.light-mode .rc-custom-del:hover { background: #fde8e8; color: #ef4444; border-color: #ef4444; }
-    .rc-add-custom-btn {
-      width: 100%;
-      margin-top: 12px;
-      padding: 10px;
-      background: transparent;
-      border: 1px dashed var(--border-light);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-family: var(--font-body);
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .rc-add-custom-btn:hover { border-color: var(--green); color: var(--green); }
+/* Badge */
+.rc-rec-box-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 10px;border-radius:3px;margin-bottom:16px;
+}
+.rc-rec-box.wevolt .rc-rec-box-badge{background:var(--green-dim);color:var(--green);border:1px solid rgba(61,220,132,.2)}
+.rc-rec-box.mule   .rc-rec-box-badge{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(249,115,22,.2)}
+.rc-rec-box.mixed  .rc-rec-box-badge{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
 
-    /* Cart internals */
-    .rc-cart-body-scroll {
-      overflow-y: auto;
-      flex: 1;
-    }
-    .rc-cart-body-scroll::-webkit-scrollbar { width: 3px; }
-    .rc-cart-body-scroll::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-    .rc-cart-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      background: #111;
-    }
-    .rc-cart-title {
-      font-family: var(--font-display);
-      font-size: 15px;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-    }
-    .rc-cart-meta {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-    .rc-cart-empty {
-      padding: 24px 16px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 13px;
-      line-height: 1.8;
-    }
-    .rc-cart-list {}
-    .rc-cart-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 9px 16px;
-      border-bottom: 1px solid #1a1a1a;
-      transition: background 0.1s;
-    }
-    .rc-cart-row:last-child { border-bottom: none; }
-    .rc-cart-row:hover { background: #1a1a1a; }
-    .rc-cat-pip {
-      width: 3px;
-      height: 26px;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-    .rc-cart-info { flex: 1; min-width: 0; }
-    .rc-cart-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .rc-cart-spec {
-      font-size: 10px;
-      color: var(--text-dim);
-      font-family: var(--font-mono);
-      margin-top: 1px;
-    }
-    .rc-qty {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      flex-shrink: 0;
-    }
-    .rc-qty-btn {
-      width: 22px; height: 22px;
-      background: #2e2e2e;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #ccc;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s;
-      line-height: 1;
-    }
-    .rc-qty-btn:hover { background: var(--green); color: #000; border-color: var(--green); }
-    body.light-mode .rc-qty-btn { background: #e0e0e0; border-color: #bbb; color: #222; }
-    body.light-mode .rc-qty-btn:hover { background: var(--green); color: #000; border-color: var(--green); }
-    .rc-qty-num {
-      width: 22px;
-      text-align: center;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--text);
-    }
-    .rc-cart-kw {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--green);
-      min-width: 44px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-    .rc-cart-rm {
-      width: 20px; height: 20px;
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-size: 12px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 3px;
-      flex-shrink: 0;
-      transition: all 0.12s;
-    }
-    .rc-cart-rm:hover { background: #2a1010; color: #ef4444; }
-    .rc-cart-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: #0f0f0f;
-      border-top: 1px solid var(--border);
-    }
-    .rc-cart-foot-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
-    .rc-cart-foot-kw { font-family: var(--font-mono); font-size: 13px; color: var(--green); }
+/* Big count */
+.rc-rec-box-count-row{display:flex;align-items:flex-end;gap:12px;margin-bottom:10px}
+.rc-rec-box-count{
+  font-family:var(--font-display);font-size:64px;line-height:1;letter-spacing:-.01em;
+  transition:transform .2s ease;
+}
+.rc-rec-box-count.pulse{animation:bigCountPulse .3s ease}
+@keyframes bigCountPulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.rc-rec-box.wevolt .rc-rec-box-count{color:var(--green)}
+.rc-rec-box.mule   .rc-rec-box-count{color:var(--orange)}
+.rc-rec-box-count-detail{padding-bottom:10px;flex:1;min-width:0}
+.rc-rec-box-unit-name{font-family:var(--font-display);font-size:18px;letter-spacing:.05em;color:var(--text)}
+.rc-rec-box-runtime{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px}
+.rc-rec-box-limit{
+  font-size:11px;color:var(--text-dim);background:#111;
+  border-radius:var(--radius-sm);padding:7px 10px;margin-top:8px;
+}
 
-    /* Duration */
-    .rc-dur-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-    }
-    .rc-dur-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .rc-dur-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .rc-dur-val {
-      font-family: var(--font-display);
-      font-size: 24px;
-      color: var(--green);
-      line-height: 1;
-    }
-    .rc-dur-val span { font-family: var(--font-body); font-size: 12px; color: var(--text-muted); margin-left: 3px; font-weight: 500; }
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 2px;
-      background: #2a2a2a;
-      border-radius: 2px;
-      outline: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px; height: 14px;
-      background: var(--green);
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 0 0 3px rgba(61,220,132,0.15);
-      transition: box-shadow 0.15s;
-    }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      box-shadow: 0 0 0 5px rgba(61,220,132,0.2);
-    }
+/* Distro controls */
+.rc-distro-ctrl{
+  display:none;align-items:center;gap:8px;
+  padding-top:12px;margin-top:12px;border-top:1px solid var(--border);
+}
+.rc-distro-ctrl.show{display:flex}
+.rc-distro-arrows{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.rc-distro-arrow{
+  width:26px;height:22px;background:#1e1e1e;border:1px solid var(--border-light);
+  border-radius:4px;color:var(--text-muted);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.rc-rec-box.wevolt .rc-distro-arrow:hover{background:var(--green-dim);color:var(--green);border-color:rgba(61,220,132,.4)}
+.rc-rec-box.mule   .rc-distro-arrow:hover{background:var(--orange-dim);color:var(--orange);border-color:rgba(249,115,22,.4)}
+.rc-distro-info{flex:1;min-width:0}
+.rc-distro-mode{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px}
+.rc-distro-desc{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
 
-    /* Power summary */
-    .rc-power-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-    }
-    .rc-section-tag {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 12px;
-    }
-    .rc-kw-big {
-      font-family: var(--font-display);
-      font-size: 64px;
-      line-height: 1;
-      letter-spacing: 0.01em;
-      transition: color 0.3s;
-      margin-bottom: 4px;
-    }
-    .rc-kw-unit { font-size: 24px; color: var(--text-muted); }
-    .rc-kw-big.zero  { color: #2a2a2a; }
-    .rc-kw-big.low   { color: var(--green); }
-    .rc-kw-big.mid   { color: var(--yellow); }
-    .rc-kw-big.high  { color: var(--orange); }
-    .rc-kwh-row {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      margin-bottom: 12px;
-    }
-    .rc-kwh-row strong { color: var(--text); }
-    .rc-buffer-tag {
-      font-size: 10px;
-      color: var(--text-dim);
-      background: #0f0f0f;
-      border-radius: var(--radius-sm);
-      padding: 6px 10px;
-      margin-bottom: 14px;
-    }
-    .rc-breakdown { display: flex; flex-direction: column; gap: 4px; }
-    .rc-bd-row { display: flex; align-items: center; gap: 8px; }
-    .rc-bd-pip { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .rc-bd-name { font-size: 11px; color: var(--text-muted); flex: 1; }
-    .rc-bd-kw { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+/* Mixed box specific */
+.rc-mixed-counts-row{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.rc-mixed-count{font-family:var(--font-display);font-size:48px;line-height:1}
+.rc-mixed-count.wevolt{color:var(--green)}
+.rc-mixed-count.mule{color:var(--orange)}
+.rc-mixed-sep{font-family:var(--font-display);font-size:28px;color:var(--text-dim)}
+.rc-mixed-config-name{font-family:var(--font-display);font-size:20px;letter-spacing:.05em;color:var(--text);margin-bottom:4px}
+.rc-mixed-concept{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:4px}
+.rc-mixed-runtime{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.rc-mixed-nav-row{
+  display:flex;align-items:center;gap:8px;
+  padding-top:12px;margin-top:12px;border-top:1px solid var(--border);
+}
+.rc-mixed-arrow{
+  width:26px;height:26px;background:#1e1e1e;border:1px solid var(--border-light);
+  border-radius:4px;color:var(--text-muted);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.rc-mixed-arrow:hover{background:var(--yellow-dim);color:var(--yellow);border-color:rgba(251,191,36,.4)}
+.rc-mixed-idx{font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
 
-    /* Mixed cycling */
-    .rc-mixed-ctrl {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex-shrink: 0;
-    }
-    .rc-mixed-arrow {
-      width: 20px; height: 20px;
-      background: #1e1e1e;
-      border: 1px solid var(--border-light);
-      border-radius: 3px;
-      color: var(--text-muted);
-      font-size: 10px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s;
-      line-height: 1;
-    }
-    .rc-mixed-arrow:hover { background: var(--green-dim); color: var(--green); border-color: rgba(61,220,132,0.4); }
-    .rc-mixed-config-idx {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      color: var(--text-dim);
-      text-align: center;
-    }
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);padding:18px 32px;
+  text-align:center;color:var(--text-dim);font-size:12px;
+}
+footer a{color:var(--text-dim);text-decoration:none}
+footer a:hover{color:var(--green)}
 
-    /* Quote button above cart */
-    .rc-quote-block {
-      background: linear-gradient(135deg, #0d2118, #091510);
-      border: 1px solid #1c3d28;
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .rc-quote-block-left h3 {
-      font-family: var(--font-display);
-      font-size: 18px;
-      letter-spacing: 0.06em;
-      margin-bottom: 2px;
-    }
-    .rc-quote-block-left p {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .rc-quote-block-right { flex-shrink: 0; text-align: right; }
-    .rc-quote-main-btn {
-      display: inline-flex;
-      align-items: center;
-      background: var(--green);
-      color: #000;
-      font-family: var(--font-display);
-      font-size: 15px;
-      letter-spacing: 0.08em;
-      padding: 10px 18px;
-      border-radius: var(--radius-sm);
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .rc-quote-main-btn:hover { background: #5ae89a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(61,220,132,0.25); }
-    .rc-quote-main-sub {
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 5px;
-    }
-    .rc-quote-main-sub a { color: var(--text-muted); text-decoration: none; }
-    .rc-reset {
-      width: 100%;
-      background: #000;
-      border: 1px solid var(--green);
-      border-radius: var(--radius-sm);
-      color: var(--green);
-      font-family: var(--font-display);
-      font-size: 14px;
-      letter-spacing: 0.08em;
-      padding: 9px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .rc-reset:hover { background: var(--green-dim); }
-
-
-    /* ── Light mode ── */
-    body.light-mode {
-      --bg:           #f0f0f0;
-      --surface:      #e8e8e8;
-      --card:         #ffffff;
-      --card-hover:   #f5f5f5;
-      --border:       #d8d8d8;
-      --border-light: #c8c8c8;
-      --green-dim:    #d4f5e4;
-      --orange-dim:   #fde8d8;
-      --text:         #111111;
-      --text-muted:   #555555;
-      --text-dim:     #888888;
-    }
-    body.light-mode .rc-header { background: #e8e8e8; }
-    body.light-mode .rc-hero { background: linear-gradient(160deg, #d4f0e0 0%, #f0f0f0 55%); }
-    body.light-mode .rc-rec-bar { background: #e8e8e8; }
-    body.light-mode .rc-rec-bar::before { background: linear-gradient(160deg, rgba(61,220,132,0.08) 0%, transparent 50%); }
-    body.light-mode .rc-search-row { background: #f5f5f5; }
-    body.light-mode .rc-cat-label { background: #ebebeb; }
-    body.light-mode input[type="range"] { background: #d0d0d0; }
-    body.light-mode .rc-buffer-tag { background: #ebebeb; }
-    body.light-mode .rc-kw-big.zero { color: #cccccc; }
-    body.light-mode .rc-rec-mixed-divider { background: #e4e4e4; }
-    body.light-mode .rc-quote-block { background: linear-gradient(135deg, #d4ede0, #e8f5ee); border-color: #a8d8bc; }
-    body.light-mode .rc-cart-head { background: #f5f5f5; }
-    body.light-mode .rc-cart-foot { background: #f0f0f0; }
-    body.light-mode .rc-stats-strip { background: #e8e8e8; border-top-color: #d0d0d0; }
-    body.light-mode .rc-stat-card { background: #fff; border-color: #d0d0d0; }
-    body.light-mode footer { background: #e8e8e8; }
-    body.light-mode .rc-rec-or-divider { background: #e8e8e8; }
-
-
-
-
-    /* Mode toggle button */
-    .rc-mode-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: transparent;
-      border: 1px solid var(--border-light);
-      border-radius: 20px;
-      padding: 5px 12px;
-      color: var(--text-muted);
-      font-family: var(--font-body);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .rc-mode-toggle:hover { border-color: var(--green); color: var(--green); }
-    .rc-mode-toggle-icon { font-size: 14px; }
-
-
-    body.light-mode .rc-browse-item:hover { background: #f0f0f0; }
-    body.light-mode .rc-browse-item.selected { background: #e0f5ec; }
-    body.light-mode .rc-cart-row:hover { background: #f5f5f5; }
-
-    /* Stats strip — pinned at bottom of left panel */
-    .rc-stats-strip {
-      border-top: 1px solid var(--border);
-      background: #0f0f0f;
-      padding: 12px 16px;
-      display: grid;
-      grid-template-columns: 120px repeat(4, 1fr);
-      gap: 10px;
-      flex-shrink: 0;
-      align-items: stretch;
-    }
-    body.light-mode .rc-stats-strip { background: #e8e8e8; }
-
-    /* Generator selector — tall, matches height of 4 stat cards */
-    .rc-gen-selector {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 8px;
-      gap: 6px;
-    }
-    body.light-mode .rc-gen-selector { background: #fff; border-color: #d0d0d0; }
-    .rc-gen-label {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      text-align: center;
-    }
-    .rc-gen-arrow {
-      width: 28px; height: 24px;
-      background: #1e1e1e;
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      color: var(--text-muted);
-      font-size: 10px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s;
-      flex-shrink: 0;
-    }
-    .rc-gen-arrow:hover { background: var(--green-dim); color: var(--green); border-color: rgba(61,220,132,0.4); }
-    body.light-mode .rc-gen-arrow { background: #e0e0e0; border-color: #bbb; color: #555; }
-    body.light-mode .rc-gen-arrow:hover { background: #d0eed8; color: #1a7a40; border-color: rgba(61,220,132,0.5); }
-    .rc-gen-info { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-    .rc-gen-type {
-      font-family: var(--font-display);
-      font-size: 17px;
-      letter-spacing: 0.04em;
-      color: var(--text);
-      line-height: 1.1;
-      text-align: center;
-    }
-    .rc-gen-rate {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .rc-gen-idx {
-      font-family: var(--font-mono);
-      font-size: 9px;
-      color: var(--text-dim);
-    }
-
-    /* Stat cards */
-    .rc-stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    body.light-mode .rc-stat-card { background: #fff; border-color: #d0d0d0; }
-    .rc-stat-icon { font-size: 14px; margin-bottom: 2px; }
-    .rc-stat-label {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .rc-stat-value {
-      font-family: var(--font-display);
-      font-size: 22px;
-      line-height: 1;
-      color: var(--green);
-      transition: color 0.3s;
-    }
-    .rc-stat-value.zero { color: var(--text-dim); font-size: 18px; }
-    .rc-stat-unit {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-dim);
-      margin-top: 1px;
-    }
-
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 20px 36px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 12px;
-      margin-top: 16px;
-    }
-    footer a { color: var(--text-dim); text-decoration: none; }
-    footer a:hover { color: var(--green); }
-
-    /* Loading */
-    .rc-loader {
-      padding: 32px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 13px;
-    }
-    .rc-loader-dot {
-      display: inline-block;
-      width: 5px; height: 5px;
-      background: var(--green);
-      border-radius: 50%;
-      margin: 0 2px;
-      animation: ldot 1.2s ease-in-out infinite;
-    }
-    .rc-loader-dot:nth-child(2) { animation-delay: 0.2s; }
-    .rc-loader-dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes ldot { 0%,80%,100%{opacity:0.15} 40%{opacity:1} }
-  </style>
+/* Loader */
+.rc-loader{padding:28px;text-align:center;color:var(--text-dim);font-size:13px}
+.rc-loader-dot{
+  display:inline-block;width:5px;height:5px;background:var(--green);
+  border-radius:50%;margin:0 2px;animation:ldot 1.2s ease-in-out infinite;
+}
+.rc-loader-dot:nth-child(2){animation-delay:.2s}
+.rc-loader-dot:nth-child(3){animation-delay:.4s}
+@keyframes ldot{0%,80%,100%{opacity:.15}40%{opacity:1}}
+</style>
 </head>
 <body>
 
@@ -1194,13 +558,12 @@
 <header class="rc-header">
   <div class="rc-logo-wrap">
     <div class="rc-logo">REVOLT</div>
-    <div class="rc-logo-divider"></div>
+    <div class="rc-logo-div"></div>
     <div class="rc-logo-sub">Power Calculator</div>
   </div>
-  <div style="display:flex;align-items:center;gap:16px;">
+  <div class="rc-header-right">
     <button class="rc-mode-toggle" onclick="toggleMode()" id="modeToggle">
-      <span class="rc-mode-toggle-icon" id="modeIcon">☀️</span>
-      <span id="modeLabel">Light</span>
+      <span id="modeIcon">☀️</span><span id="modeLabel">Light</span>
     </button>
     <div class="rc-header-cta">Questions? <a href="tel:4049966496">404-996-6496</a></div>
   </div>
@@ -1212,85 +575,14 @@
   <p>Select your equipment and duration below. We'll calculate your exact load and recommend the right ReVolt units in real time.</p>
 </div>
 
-<!-- RECOMMENDATIONS BAR -->
-<div class="rc-rec-bar" id="recBar">
-  <!-- Dormant -->
-  <div class="rc-rec-dormant" id="recDormant">
-    <div class="rc-rec-dormant-pulse">
-      <div class="rc-rec-dormant-dot"></div>
-      <div class="rc-rec-dormant-dot"></div>
-      <div class="rc-rec-dormant-dot"></div>
-    </div>
-    Add equipment below to see your power recommendation
-  </div>
-  <!-- Active — stacked layout -->
-  <div class="rc-rec-active" id="recActive">
-    <!-- Top row: WeVolt | OR | Mule -->
-    <div class="rc-rec-top-row">
-      <!-- WeVolt option with optional distro arrows -->
-      <div class="rc-rec-unit" id="recOpt1">
-        <div class="rc-mixed-nav" id="recWvArrows" style="display:none">
-          <button class="rc-mixed-arrow" onclick="toggleWvDistro()">▲</button>
-          <button class="rc-mixed-arrow" onclick="toggleWvDistro()">▼</button>
-        </div>
-        <div class="rc-rec-badge wevolt" id="recWvBadge">WeVolt Only</div>
-        <div class="rc-rec-count wevolt" id="recWvCount">0</div>
-        <div class="rc-rec-unit-detail">
-          <div class="rc-rec-unit-name" id="recWvTitle">WeVolt units</div>
-          <div class="rc-rec-unit-runtime" id="recWvSub">—</div>
-        </div>
-      </div>
-      <div class="rc-rec-or-divider">OR</div>
-      <!-- Mule option with optional distro arrows — defaults to distro view -->
-      <div class="rc-rec-unit" id="recOpt2">
-        <div class="rc-mixed-nav" id="recMlArrows" style="display:none">
-          <button class="rc-mixed-arrow" onclick="toggleMlDistro()">▲</button>
-          <button class="rc-mixed-arrow" onclick="toggleMlDistro()">▼</button>
-        </div>
-        <div class="rc-rec-badge mule" id="recMlBadge">Mule Only</div>
-        <div class="rc-rec-count mule" id="recMlCount">0</div>
-        <div class="rc-rec-unit-detail">
-          <div class="rc-rec-unit-name" id="recMlTitle">Mule units</div>
-          <div class="rc-rec-unit-runtime" id="recMlSub">—</div>
-        </div>
-      </div>
-    </div>
-    <!-- OR mix divider -->
-    <div class="rc-rec-mixed-divider">
-      <div class="rc-rec-mixed-divider-line"></div>
-      <div class="rc-rec-mixed-divider-text">or configure a mixed deployment</div>
-      <div class="rc-rec-mixed-divider-line"></div>
-    </div>
-    <!-- Bottom: Mixed full-width — arrows LEFT of badge -->
-    <div class="rc-rec-mixed" id="recOpt3">
-      <div class="rc-mixed-nav">
-        <button class="rc-mixed-arrow" onclick="cycleMixed(1)">▲</button>
-        <div class="rc-mixed-idx" id="mixedIdx">1 / 4</div>
-        <button class="rc-mixed-arrow" onclick="cycleMixed(-1)">▼</button>
-      </div>
-      <div class="rc-rec-badge mixed">Mixed</div>
-      <div class="rc-mixed-counts">
-        <div class="rc-rec-count mixed-m" id="recMxMule">0</div>
-        <div class="rc-rec-count-sep">+</div>
-        <div class="rc-rec-count mixed-w" id="recMxWv">0</div>
-      </div>
-      <div class="rc-mixed-detail">
-        <div class="rc-mixed-config-name" id="recMxName">—</div>
-        <div class="rc-mixed-concept" id="recMxConcept">—</div>
-        <div class="rc-mixed-runtime" id="recMxRuntime">—</div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- MAIN GRID -->
+<div class="rc-wrap">
 
-
-<!-- MAIN -->
-<div class="rc-main">
-
-  <!-- LEFT: Equipment selection -->
+  <!-- LEFT: Equipment panel + Stats -->
+  <div class="rc-left-col">
   <div class="rc-left">
 
-    <!-- Industry chips -->
+    <!-- Chips -->
     <div class="rc-chips-wrap">
       <div class="rc-chips-label">Filter by industry</div>
       <div class="rc-chips-row" id="chipsRow"></div>
@@ -1299,102 +591,84 @@
     <!-- Tabs -->
     <div class="rc-tabs">
       <button class="rc-tab active" id="tabBrowse" onclick="switchTab('browse')">
-        <span class="rc-tab-icon">🔍</span> Browse Equipment
+        <span>🔍</span> Browse Equipment
       </button>
       <button class="rc-tab" id="tabCustom" onclick="switchTab('custom')">
-        <span class="rc-tab-icon">⚡</span> Custom / Other
+        <span>⚡</span> Custom / Other
       </button>
     </div>
 
     <!-- Browse -->
-    <div id="panelBrowse" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-      <div class="rc-browse">
-        <div class="rc-search-row">
-          <span class="rc-search-icon">⌕</span>
-          <input class="rc-search-input" id="searchInput"
-            placeholder="Search equipment by name or category…"
-            oninput="onSearch(this.value)"
-            autocomplete="off">
-          <span class="rc-search-count" id="searchCount"></span>
-        </div>
-        <div class="rc-browse-list" id="browseList">
-          <div class="rc-loader">
-            <div class="rc-loader-dot"></div>
-            <div class="rc-loader-dot"></div>
-            <div class="rc-loader-dot"></div>
-            <div style="margin-top:10px">Loading catalog…</div>
-          </div>
+    <div id="panelBrowse" class="rc-browse-wrap">
+      <div class="rc-search-row">
+        <span class="rc-search-icon">⌕</span>
+        <input class="rc-search-input" id="searchInput" placeholder="Search by name, category, or tag…"
+          oninput="onSearch(this.value)" autocomplete="off">
+        <span class="rc-search-count" id="searchCount"></span>
+      </div>
+      <div class="rc-browse-list" id="browseList">
+        <div class="rc-loader">
+          <div class="rc-loader-dot"></div><div class="rc-loader-dot"></div><div class="rc-loader-dot"></div>
+          <div style="margin-top:10px">Loading catalog…</div>
         </div>
       </div>
     </div>
 
     <!-- Custom -->
-    <div id="panelCustom" style="display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden;">
-      <div class="rc-custom-panel">
-        <div class="rc-custom-intro">
-          Add any equipment not in the catalog. We'll verify the wattage automatically and flag it if your estimate is off by more than 15%.
-        </div>
-        <div class="rc-custom-items" id="customItems"></div>
-        <button class="rc-add-custom-btn" onclick="addCustom()">+ Add Custom Equipment</button>
-      </div>
+    <div id="panelCustom" class="rc-custom-wrap" style="display:none">
+      <div class="rc-custom-intro">Add any equipment not in the catalog. We'll verify the wattage automatically and flag it if your estimate is off by more than 15%.</div>
+      <div class="rc-custom-items" id="customItems"></div>
+      <button class="rc-add-custom-btn" onclick="addCustom()">+ Add Custom Equipment</button>
     </div>
 
-    <!-- Stats strip -->
-    <div class="rc-stats-strip" id="statsStrip">
-      <!-- Generator selector -->
-      <div class="rc-gen-selector">
-        <div class="rc-gen-label">vs. Generator</div>
-        <button class="rc-gen-arrow" onclick="cycleGen(1)">▲</button>
-        <div class="rc-gen-info">
-          <div class="rc-gen-type" id="genType">20 kW</div>
-          <div class="rc-gen-rate" id="genRate">1.6 gal/hr</div>
-        </div>
-        <button class="rc-gen-arrow" onclick="cycleGen(-1)">▼</button>
-        <div class="rc-gen-idx" id="genIdx">1 / 4</div>
-      </div>
-      <!-- Stat tiles -->
-      <div class="rc-stat-card">
-        <div class="rc-stat-icon">⛽</div>
-        <div class="rc-stat-label">Diesel Displaced</div>
-        <div class="rc-stat-value zero" id="statDiesel">—</div>
-        <div class="rc-stat-unit">gallons</div>
-      </div>
-      <div class="rc-stat-card">
-        <div class="rc-stat-icon">🌿</div>
-        <div class="rc-stat-label">CO₂ Avoided</div>
-        <div class="rc-stat-value zero" id="statCo2">—</div>
-        <div class="rc-stat-unit">lbs</div>
-      </div>
-      <div class="rc-stat-card">
-        <div class="rc-stat-icon">💰</div>
-        <div class="rc-stat-label">Fuel Cost Saved</div>
-        <div class="rc-stat-value zero" id="statCost">—</div>
-        <div class="rc-stat-unit">est. vs. diesel gen</div>
-      </div>
-      <div class="rc-stat-card">
-        <div class="rc-stat-icon">⚡</div>
-        <div class="rc-stat-label">Clean Power</div>
-        <div class="rc-stat-value zero" id="statHours">—</div>
-        <div class="rc-stat-unit">zero-emission hrs</div>
-      </div>
-    </div>
 
+  </div><!-- /rc-left -->
+
+  <!-- Stats strip — own card below browse panel -->
+  <div class="rc-stats-card">
+    <div class="rc-gen-selector">
+      <div class="rc-gen-label">vs. Generator</div>
+      <button class="rc-gen-arrow" onclick="cycleGen(1)">▲</button>
+      <div class="rc-gen-info">
+        <div class="rc-gen-type" id="genType">20 kW</div>
+        <div class="rc-gen-rate" id="genRate">1.6 gal/hr</div>
+      </div>
+      <button class="rc-gen-arrow" onclick="cycleGen(-1)">▼</button>
+      <div class="rc-gen-idx" id="genIdx">1 / 4</div>
+    </div>
+    <div class="rc-stat-card">
+      <div class="rc-stat-icon">⛽</div>
+      <div class="rc-stat-label">Diesel Displaced</div>
+      <div class="rc-stat-value zero" id="statDiesel">—</div>
+      <div class="rc-stat-unit">gallons</div>
+    </div>
+    <div class="rc-stat-card">
+      <div class="rc-stat-icon">🌿</div>
+      <div class="rc-stat-label">CO₂ Avoided</div>
+      <div class="rc-stat-value zero" id="statCo2">—</div>
+      <div class="rc-stat-unit">lbs</div>
+    </div>
+    <div class="rc-stat-card">
+      <div class="rc-stat-icon">💰</div>
+      <div class="rc-stat-label">Fuel Cost Saved</div>
+      <div class="rc-stat-value zero" id="statCost">—</div>
+      <div class="rc-stat-unit">est. vs. diesel gen</div>
+    </div>
+    <div class="rc-stat-card">
+      <div class="rc-stat-icon">⚡</div>
+      <div class="rc-stat-label">Clean Power</div>
+      <div class="rc-stat-value zero" id="statHours">—</div>
+      <div class="rc-stat-unit">zero-emission hrs</div>
+    </div>
   </div>
 
-  <!-- RIGHT: Cart + controls -->
+  </div><!-- /rc-left-col -->
+
+  <!-- RIGHT: Dashboard -->
   <div class="rc-right">
 
-    <!-- Quote CTA above cart -->
-    <div class="rc-quote-block">
-      <div class="rc-quote-block-left">
-        <h3>Ready to book?</h3>
-        <p>We'll build a custom quote — fast.</p>
-      </div>
-      <div class="rc-quote-block-right">
-        <a class="rc-quote-main-btn" id="quoteMainBtn" href="mailto:info@revoltfuel.com">Request a Quote →</a>
-        <div class="rc-quote-main-sub">or call <a href="tel:4049966496">404-996-6496</a></div>
-      </div>
-    </div>
+    <!-- Reset -->
+    <button class="rc-reset" onclick="resetAll()">↺ RESET CALCULATOR</button>
 
     <!-- Cart -->
     <div class="rc-cart">
@@ -1402,18 +676,31 @@
         <span class="rc-cart-title">Selected Equipment</span>
         <span class="rc-cart-meta" id="cartMeta">0 items</span>
       </div>
-      <div class="rc-cart-body-scroll" id="cartBody">
+      <div class="rc-cart-scroll" id="cartBody">
         <div class="rc-cart-empty">No equipment selected yet.<br>Browse or search to get started.</div>
+      </div>
+      <div class="rc-cart-foot" id="cartFoot" style="display:none">
+        <span class="rc-cart-foot-label">Total</span>
+        <span class="rc-cart-foot-kw" id="cartFootKw">0 kW</span>
       </div>
     </div>
 
-    <!-- Duration -->
+    <!-- Duration + Buffer -->
     <div class="rc-dur-card">
       <div class="rc-dur-row">
         <span class="rc-dur-label">Event Duration</span>
         <span class="rc-dur-val" id="durVal">8 <span>hrs</span></span>
       </div>
       <input type="range" id="durSlider" min="1" max="24" value="8" oninput="setDuration(this.value)">
+      <div class="rc-buffer-row">
+        <span class="rc-buffer-label">Safety Buffer</span>
+        <div class="rc-buffer-stops">
+          <button class="rc-buffer-stop active" onclick="setBuffer(0)" id="buf0">0%</button>
+          <button class="rc-buffer-stop" onclick="setBuffer(5)" id="buf5">5%</button>
+          <button class="rc-buffer-stop" onclick="setBuffer(10)" id="buf10">10%</button>
+          <button class="rc-buffer-stop" onclick="setBuffer(20)" id="buf20">20%</button>
+        </div>
+      </div>
     </div>
 
     <!-- Power summary -->
@@ -1421,14 +708,119 @@
       <div class="rc-section-tag">Live Power Estimate</div>
       <div class="rc-kw-big zero" id="kwBig">0 <span class="rc-kw-unit">kW</span></div>
       <div class="rc-kwh-row" id="kwhRow">≈ <strong>0 kWh</strong> over 8 hrs</div>
-      <div class="rc-buffer-tag">⚠ Includes 20% safety buffer</div>
+      <div class="rc-buffer-note" id="bufferNote">No safety buffer applied</div>
       <div class="rc-breakdown" id="breakdownArea"></div>
     </div>
 
-    <button class="rc-reset" onclick="resetAll()">↺ Reset Calculator</button>
+    <!-- CTA -->
+    <div class="rc-cta-card">
+      <div class="rc-cta-left">
+        <h3>Ready to Book?</h3>
+        <p>We'll build a custom quote — fast.</p>
+      </div>
+      <div class="rc-cta-right">
+        <a class="rc-cta-btn" id="quoteMail" href="mailto:info@revoltfuel.com">Request a Quote →</a>
+        <div class="rc-cta-sub">or call <a href="tel:4049966496">404-996-6496</a></div>
+      </div>
+    </div>
 
+  </div><!-- /rc-right -->
+
+</div><!-- /rc-wrap -->
+
+<!-- REC BOXES — dormant state -->
+<div class="rc-rec-dormant-bar" id="recDormantBar">
+  <div class="rc-rec-dormant-inner">
+    <div class="rc-dormant-dots">
+      <div class="rc-dormant-dot"></div>
+      <div class="rc-dormant-dot"></div>
+      <div class="rc-dormant-dot"></div>
+    </div>
+    Add equipment above to see your unit recommendation
   </div>
 </div>
+
+<!-- REC BOXES — active -->
+<div class="rc-rec-section" id="recSection" style="display:none">
+
+  <!-- WeVolt box -->
+  <div class="rc-rec-box wevolt" id="recBoxWv">
+    <div class="rc-rec-box-accent"></div>
+    <div class="rc-rec-box-inner">
+      <div class="rc-rec-box-badge" id="recWvBadge">WeVolt Only</div>
+      <div class="rc-rec-box-count-row">
+        <div class="rc-rec-box-count" id="recWvCount">0</div>
+        <div class="rc-rec-box-count-detail">
+          <div class="rc-rec-box-unit-name" id="recWvTitle">WeVolt units</div>
+          <div class="rc-rec-box-runtime" id="recWvSub">—</div>
+        </div>
+      </div>
+      <div class="rc-rec-box-limit" id="recWvLimit" style="display:none"></div>
+      <!-- Distro toggle -->
+      <div class="rc-distro-ctrl" id="recWvDistroCtrl">
+        <div class="rc-distro-arrows">
+          <button class="rc-distro-arrow" onclick="toggleWvDistro()">▲</button>
+          <button class="rc-distro-arrow" onclick="toggleWvDistro()">▼</button>
+        </div>
+        <div class="rc-distro-info">
+          <div class="rc-distro-mode" id="recWvDistroMode">—</div>
+          <div class="rc-distro-desc" id="recWvDistroDesc">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mule box -->
+  <div class="rc-rec-box mule" id="recBoxMl">
+    <div class="rc-rec-box-accent"></div>
+    <div class="rc-rec-box-inner">
+      <div class="rc-rec-box-badge" id="recMlBadge">Mule Only</div>
+      <div class="rc-rec-box-count-row">
+        <div class="rc-rec-box-count" id="recMlCount">0</div>
+        <div class="rc-rec-box-count-detail">
+          <div class="rc-rec-box-unit-name" id="recMlTitle">Mule units</div>
+          <div class="rc-rec-box-runtime" id="recMlSub">—</div>
+        </div>
+      </div>
+      <div class="rc-rec-box-limit" id="recMlLimit" style="display:none"></div>
+      <!-- Distro toggle -->
+      <div class="rc-distro-ctrl" id="recMlDistroCtrl">
+        <div class="rc-distro-arrows">
+          <button class="rc-distro-arrow" onclick="toggleMlDistro()">▲</button>
+          <button class="rc-distro-arrow" onclick="toggleMlDistro()">▼</button>
+        </div>
+        <div class="rc-distro-info">
+          <div class="rc-distro-mode" id="recMlDistroMode">—</div>
+          <div class="rc-distro-desc" id="recMlDistroDesc">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mixed box -->
+  <div class="rc-rec-box mixed" id="recBoxMix">
+    <div class="rc-rec-box-accent"></div>
+    <div class="rc-rec-box-inner">
+      <div class="rc-rec-box-badge">Mixed Deployment</div>
+      <div class="rc-mixed-counts-row">
+        <div class="rc-mixed-count mule" id="recMxMule">0</div>
+        <div class="rc-mixed-sep">+</div>
+        <div class="rc-mixed-count wevolt" id="recMxWv">0</div>
+      </div>
+      <div class="rc-mixed-config-name" id="recMxName">—</div>
+      <div class="rc-mixed-concept" id="recMxConcept">—</div>
+      <div class="rc-mixed-runtime" id="recMxRuntime">—</div>
+      <div class="rc-mixed-nav-row">
+        <button class="rc-mixed-arrow" onclick="cycleMixed(1)">▲</button>
+        <button class="rc-mixed-arrow" onclick="cycleMixed(-1)">▼</button>
+        <div class="rc-mixed-idx" id="mixedIdx">1 / 3</div>
+        <div style="flex:1"></div>
+        <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono)">cycle configs</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /rc-rec-section -->
 
 <footer>
   © ReVolt Holdings, Inc. &nbsp;·&nbsp; 3580 Zip Industrial Blvd. SE, Atlanta GA 30354
@@ -1443,43 +835,44 @@
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQAmM_JUS7zrHDoAm7AwiTUb4sFCugftf600XXvPl5QGjGPZByWMaEASUeBy-v790ZnA/exec';
 
 // ─────────────────────────────────────────────
-//  UNIT SPECS — do not change
+//  UNIT SPECS
 // ─────────────────────────────────────────────
 const WEVOLT = { kw: 12,  kwh: 17  };
 const MULE   = { kw: 160, kwh: 200 };
-const BUFFER = 1.20;
 
-// Circuit inventory per unit
-// WeVolt: 6× 120v (3 pairs), 1× 208v 1Ph 30A, 1× 208v 3Ph Cam-Loc 30A/leg
-// Mule Gen2: 6× 120v (3 pairs), 3× 208v 3Ph Cam-Loc 300A/leg,
-//            2× 240v 1Ph Cam-Loc 100A, 2× 240v 1Ph Twist Lock 50A, 1× 480v 3Ph 200A/leg
+// Buffer: 0 by default, user-selectable
+let BUFFER_PCT = 0;
+let BUFFER     = 1.0;
+
+// ─────────────────────────────────────────────
+//  CIRCUIT INVENTORY
+// ─────────────────────────────────────────────
 const CIRCUITS = {
   wevolt: {
-    '120v 1Ph':  { slots: 6,  amps: 20,  label: '120v outlets',            distro: '120v power strip distro' },
-    '208v 1Ph':  { slots: 1,  amps: 30,  label: '208v 1Ph outlet',         distro: '208v 1Ph distro panel' },
-    '208v 3Ph':  { slots: 1,  amps: 30,  label: '208v 3Ph Cam-Loc',        distro: '208v Cam-Loc spider box' },
+    '120v 1Ph': { slots:6,  amps:20,  label:'120v outlets',       distro:'120v power strip distro' },
+    '208v 1Ph': { slots:1,  amps:30,  label:'208v 1Ph outlet',    distro:'208v 1Ph distro panel' },
+    '208v 3Ph': { slots:1,  amps:30,  label:'208v 3Ph Cam-Loc',   distro:'208v Cam-Loc spider box' },
   },
   mule: {
-    '120v 1Ph':  { slots: 6,  amps: 20,  label: '120v outlets',            distro: '120v power strip distro' },
-    '208v 3Ph':  { slots: 3,  amps: 300, label: '208v 3Ph Cam-Locs',       distro: '208v Cam-Loc spider box' },
-    '240v 1Ph':  { slots: 4,  amps: 100, label: '240v 1Ph circuits',       distro: '240v distro panel' },
-    '480v 3Ph':  { slots: 1,  amps: 200, label: '480v 3Ph Cam-Loc',        distro: '480v Cam-Loc distro' },
+    '120v 1Ph': { slots:6,  amps:20,  label:'120v outlets',       distro:'120v power strip distro' },
+    '208v 3Ph': { slots:3,  amps:300, label:'208v 3Ph Cam-Locs',  distro:'208v Cam-Loc spider box' },
+    '240v 1Ph': { slots:4,  amps:100, label:'240v 1Ph circuits',  distro:'240v distro panel' },
+    '480v 3Ph': { slots:1,  amps:200, label:'480v 3Ph Cam-Loc',   distro:'480v Cam-Loc distro' },
   }
 };
 
-// Normalize Primary Voltage field to circuit key
 function normVoltage(pv) {
   if (!pv) return '120v 1Ph';
   const s = String(pv).trim().toLowerCase();
-  if (s.includes('480')) return '480v 3Ph';
-  if (s.includes('240')) return '240v 1Ph';
-  if (s.includes('208') && (s.includes('3') || s.includes('3ph'))) return '208v 3Ph';
-  if (s.includes('208')) return '208v 1Ph';
+  if (s.includes('480'))                               return '480v 3Ph';
+  if (s.includes('240'))                               return '240v 1Ph';
+  if (s.includes('208') && (s.includes('3')||s.includes('3ph'))) return '208v 3Ph';
+  if (s.includes('208'))                               return '208v 1Ph';
   return '120v 1Ph';
 }
 
 // ─────────────────────────────────────────────
-//  INDUSTRY CHIPS
+//  CHIPS
 // ─────────────────────────────────────────────
 const CHIPS = [
   { label:'Events & Hospitality', tags:['Events','Concerts','Corporate','Festivals','Weddings','Sports','Food Service'] },
@@ -1494,82 +887,101 @@ const CHIPS = [
 //  CAT COLORS
 // ─────────────────────────────────────────────
 const CAT_COLOR = {
-  'Lighting':                 '#60a5fa',
-  'Sound & Audio':            '#a78bfa',
-  'Video & Displays':         '#f472b6',
-  'Climate Control':          '#38bdf8',
-  'Restroom Trailers':        '#fb923c',
-  'Production & Catering':    '#fbbf24',
-  'Construction':             '#84cc16',
-  'Food Service':             '#f97316',
+  'Lighting':                '#60a5fa',
+  'Sound & Audio':           '#a78bfa',
+  'Video & Displays':        '#f472b6',
+  'Climate Control':         '#38bdf8',
+  'Restroom Trailers':       '#fb923c',
+  'Production & Catering':   '#fbbf24',
+  'Construction':            '#84cc16',
+  'Food Service':            '#f97316',
   'Medical & Disaster Relief':'#ef4444',
-  'Medical & Disaster':       '#ef4444',
-  'Sports & Entertainment':   '#06b6d4',
-  'Broadcast & Corporate':    '#8b5cf6',
-  'EV Charging':              '#10b981',
-  'Custom':                   '#3ddc84',
+  'Medical & Disaster':      '#ef4444',
+  'Sports & Entertainment':  '#06b6d4',
+  'Broadcast & Corporate':   '#8b5cf6',
+  'EV Charging':             '#10b981',
+  'Custom':                  '#3ddc84',
 };
 const catColor = cat => CAT_COLOR[cat] || '#3ddc84';
 
 // ─────────────────────────────────────────────
-//  FALLBACK CATALOG
+//  FALLBACK CATALOG (41 items)
 // ─────────────────────────────────────────────
 const FALLBACK = [
-  {id:'led_sm',      'Item Name':'LED Panel — Small (1×1 / 2×2)',       Watts:100,   Category:'Lighting',             'Industry Tags':'Film+TV,Events,Concerts'},
-  {id:'led_lg',      'Item Name':'LED Panel — Large (4×4)',              Watts:400,   Category:'Lighting',             'Industry Tags':'Film+TV,Events,Concerts'},
-  {id:'led_fresnel', 'Item Name':'LED Fresnel / Fixture',                Watts:500,   Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'hmi_575',     'Item Name':'HMI Par (575W)',                       Watts:650,   Category:'Lighting',             'Industry Tags':'Film+TV,Events'},
-  {id:'hmi_1200',    'Item Name':'HMI (1.2kW)',                          Watts:1400,  Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'hmi_2500',    'Item Name':'HMI (2.5kW)',                          Watts:2800,  Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'hmi_4000',    'Item Name':'HMI (4kW)',                            Watts:4500,  Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'hmi_6000',    'Item Name':'HMI (6kW)',                            Watts:6800,  Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'moving_head', 'Item Name':'LED Moving Head',                      Watts:400,   Category:'Lighting',             'Industry Tags':'Events,Concerts,Festivals'},
-  {id:'conv_1k',     'Item Name':'Conventional Tungsten (1K)',           Watts:1100,  Category:'Lighting',             'Industry Tags':'Film+TV,Events'},
-  {id:'conv_2k',     'Item Name':'Conventional Tungsten (2K)',           Watts:2200,  Category:'Lighting',             'Industry Tags':'Film+TV'},
-  {id:'string',      'Item Name':'String Lights (per strand)',           Watts:40,    Category:'Lighting',             'Industry Tags':'Events,Weddings,Festivals'},
-  {id:'work_light',  'Item Name':'Work / Site Light',                    Watts:150,   Category:'Lighting',             'Industry Tags':'Construction,Events'},
-  {id:'pa_sm',       'Item Name':'PA System — Small (≤200 guests)',      Watts:2000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Corporate,Weddings'},
-  {id:'pa_md',       'Item Name':'PA System — Medium (200–500)',         Watts:5000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Festivals'},
-  {id:'pa_lg',       'Item Name':'PA System — Large (500+)',             Watts:10000, Category:'Sound & Audio',        'Industry Tags':'Concerts,Festivals'},
-  {id:'monitor',     'Item Name':'Stage Monitor / Speaker',              Watts:500,   Category:'Sound & Audio',        'Industry Tags':'Events,Concerts'},
-  {id:'sub',         'Item Name':'Subwoofer',                            Watts:1000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Festivals'},
-  {id:'dj',          'Item Name':'DJ / Controller Setup',                Watts:1500,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Weddings'},
-  {id:'console',     'Item Name':'Mixing Console',                       Watts:500,   Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Broadcast,Film+TV'},
-  {id:'ledwall',     'Item Name':'LED Wall (per 10 sq ft)',              Watts:500,   Category:'Video & Displays',     'Industry Tags':'Events,Concerts,Broadcast,Corporate'},
-  {id:'proj_5k',     'Item Name':'Projector (5,000 lumen)',              Watts:700,   Category:'Video & Displays',     'Industry Tags':'Events,Corporate,Film+TV'},
-  {id:'proj_10k',    'Item Name':'Projector (10,000 lumen)',             Watts:1600,  Category:'Video & Displays',     'Industry Tags':'Events,Concerts,Broadcast'},
-  {id:'vid_village', 'Item Name':'Video Village (monitors + switching)', Watts:2000,  Category:'Video & Displays',     'Industry Tags':'Film+TV,Broadcast'},
-  {id:'tv_55',       'Item Name':'TV Monitor (55")',                     Watts:150,   Category:'Video & Displays',     'Industry Tags':'Events,Corporate,Broadcast'},
-  {id:'cam_rig',     'Item Name':'Camera Rig + Accessories',             Watts:300,   Category:'Video & Displays',     'Industry Tags':'Film+TV,Broadcast'},
-  {id:'ac_window',   'Item Name':'Window AC (12,000 BTU)',               Watts:1200,  Category:'Climate Control',      'Industry Tags':'Events,Film+TV,Construction'},
-  {id:'ac_port',     'Item Name':'Portable AC (18,000 BTU)',             Watts:2000,  Category:'Climate Control',      'Industry Tags':'Events,Film+TV,Medical'},
-  {id:'ac_trailer',  'Item Name':'Production Trailer / Office AC',       Watts:3500,  Category:'Climate Control',      'Industry Tags':'Film+TV,Events,Construction'},
-  {id:'heater',      'Item Name':'Electric Space Heater',                Watts:1500,  Category:'Climate Control',      'Industry Tags':'Events,Construction,Disaster Relief'},
-  {id:'fan',         'Item Name':'Industrial Fan',                       Watts:500,   Category:'Climate Control',      'Industry Tags':'Events,Construction,Disaster Relief'},
-  {id:'rr_2',        'Item Name':'Restroom Trailer (2-stall)',           Watts:3000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Weddings,Construction'},
-  {id:'rr_4',        'Item Name':'Restroom Trailer (4-stall)',           Watts:5000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Concerts'},
-  {id:'rr_8',        'Item Name':'Restroom Trailer (8-stall)',           Watts:8000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Concerts'},
-  {id:'cam_charge',  'Item Name':'Camera / Battery Charging Station',    Watts:500,   Category:'Production & Catering','Industry Tags':'Film+TV,Broadcast,Events'},
-  {id:'workstation', 'Item Name':'Laptop / Workstation',                 Watts:200,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Broadcast,Corporate'},
-  {id:'craft',       'Item Name':'Craft Service Station',                Watts:1500,  Category:'Production & Catering','Industry Tags':'Film+TV,Events'},
-  {id:'coffee',      'Item Name':'Coffee Maker / Warming Station',       Watts:1000,  Category:'Production & Catering','Industry Tags':'Events,Corporate,Film+TV'},
-  {id:'fridge',      'Item Name':'Mini-Fridge / Cooler',                 Watts:150,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Disaster Relief'},
-  {id:'walkie',      'Item Name':'Walkie-Talkie Charger Bank',           Watts:300,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Construction,Disaster Relief'},
-  {id:'printer',     'Item Name':'Printer / Copier',                     Watts:600,   Category:'Production & Catering','Industry Tags':'Corporate,Events,Broadcast'},
+  {id:'led_sm',      'Item Name':'LED Panel — Small (1×1 / 2×2)',       Watts:100,   Category:'Lighting',             'Industry Tags':'Film+TV,Events,Concerts','Primary Voltage':'120v 1Ph'},
+  {id:'led_lg',      'Item Name':'LED Panel — Large (4×4)',              Watts:400,   Category:'Lighting',             'Industry Tags':'Film+TV,Events,Concerts','Primary Voltage':'120v 1Ph'},
+  {id:'led_fresnel', 'Item Name':'LED Fresnel / Fixture',                Watts:500,   Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'120v 1Ph'},
+  {id:'hmi_575',     'Item Name':'HMI Par (575W)',                       Watts:650,   Category:'Lighting',             'Industry Tags':'Film+TV,Events','Primary Voltage':'120v 1Ph'},
+  {id:'hmi_1200',    'Item Name':'HMI (1.2kW)',                          Watts:1400,  Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'208v 1Ph'},
+  {id:'hmi_2500',    'Item Name':'HMI (2.5kW)',                          Watts:2800,  Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'208v 1Ph'},
+  {id:'hmi_4000',    'Item Name':'HMI (4kW)',                            Watts:4500,  Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'208v 3Ph'},
+  {id:'hmi_6000',    'Item Name':'HMI (6kW)',                            Watts:6800,  Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'208v 3Ph'},
+  {id:'moving_head', 'Item Name':'LED Moving Head',                      Watts:400,   Category:'Lighting',             'Industry Tags':'Events,Concerts,Festivals','Primary Voltage':'120v 1Ph'},
+  {id:'conv_1k',     'Item Name':'Conventional Tungsten (1K)',           Watts:1100,  Category:'Lighting',             'Industry Tags':'Film+TV,Events','Primary Voltage':'120v 1Ph'},
+  {id:'conv_2k',     'Item Name':'Conventional Tungsten (2K)',           Watts:2200,  Category:'Lighting',             'Industry Tags':'Film+TV','Primary Voltage':'208v 1Ph'},
+  {id:'string',      'Item Name':'String Lights (per strand)',           Watts:40,    Category:'Lighting',             'Industry Tags':'Events,Weddings,Festivals','Primary Voltage':'120v 1Ph'},
+  {id:'work_light',  'Item Name':'Work / Site Light',                    Watts:150,   Category:'Lighting',             'Industry Tags':'Construction,Events','Primary Voltage':'120v 1Ph'},
+  {id:'pa_sm',       'Item Name':'PA System — Small (≤200 guests)',      Watts:2000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Corporate,Weddings','Primary Voltage':'120v 1Ph'},
+  {id:'pa_md',       'Item Name':'PA System — Medium (200–500)',         Watts:5000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Festivals','Primary Voltage':'208v 3Ph'},
+  {id:'pa_lg',       'Item Name':'PA System — Large (500+)',             Watts:10000, Category:'Sound & Audio',        'Industry Tags':'Concerts,Festivals','Primary Voltage':'208v 3Ph'},
+  {id:'monitor',     'Item Name':'Stage Monitor / Speaker',              Watts:500,   Category:'Sound & Audio',        'Industry Tags':'Events,Concerts','Primary Voltage':'120v 1Ph'},
+  {id:'sub',         'Item Name':'Subwoofer',                            Watts:1000,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Festivals','Primary Voltage':'120v 1Ph'},
+  {id:'dj',          'Item Name':'DJ / Controller Setup',                Watts:1500,  Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Weddings','Primary Voltage':'120v 1Ph'},
+  {id:'console',     'Item Name':'Mixing Console',                       Watts:500,   Category:'Sound & Audio',        'Industry Tags':'Events,Concerts,Broadcast,Film+TV','Primary Voltage':'120v 1Ph'},
+  {id:'ledwall',     'Item Name':'LED Wall (per 10 sq ft)',              Watts:500,   Category:'Video & Displays',     'Industry Tags':'Events,Concerts,Broadcast,Corporate','Primary Voltage':'120v 1Ph'},
+  {id:'proj_5k',     'Item Name':'Projector (5,000 lumen)',              Watts:700,   Category:'Video & Displays',     'Industry Tags':'Events,Corporate,Film+TV','Primary Voltage':'120v 1Ph'},
+  {id:'proj_10k',    'Item Name':'Projector (10,000 lumen)',             Watts:1600,  Category:'Video & Displays',     'Industry Tags':'Events,Concerts,Broadcast','Primary Voltage':'120v 1Ph'},
+  {id:'vid_village', 'Item Name':'Video Village (monitors + switching)', Watts:2000,  Category:'Video & Displays',     'Industry Tags':'Film+TV,Broadcast','Primary Voltage':'120v 1Ph'},
+  {id:'tv_55',       'Item Name':'TV Monitor (55")',                     Watts:150,   Category:'Video & Displays',     'Industry Tags':'Events,Corporate,Broadcast','Primary Voltage':'120v 1Ph'},
+  {id:'cam_rig',     'Item Name':'Camera Rig + Accessories',             Watts:300,   Category:'Video & Displays',     'Industry Tags':'Film+TV,Broadcast','Primary Voltage':'120v 1Ph'},
+  {id:'ac_window',   'Item Name':'Window AC (12,000 BTU)',               Watts:1200,  Category:'Climate Control',      'Industry Tags':'Events,Film+TV,Construction','Primary Voltage':'120v 1Ph'},
+  {id:'ac_port',     'Item Name':'Portable AC (18,000 BTU)',             Watts:2000,  Category:'Climate Control',      'Industry Tags':'Events,Film+TV,Medical','Primary Voltage':'240v 1Ph'},
+  {id:'ac_trailer',  'Item Name':'Production Trailer / Office AC',       Watts:3500,  Category:'Climate Control',      'Industry Tags':'Film+TV,Events,Construction','Primary Voltage':'240v 1Ph'},
+  {id:'heater',      'Item Name':'Electric Space Heater',                Watts:1500,  Category:'Climate Control',      'Industry Tags':'Events,Construction,Disaster Relief','Primary Voltage':'120v 1Ph'},
+  {id:'fan',         'Item Name':'Industrial Fan',                       Watts:500,   Category:'Climate Control',      'Industry Tags':'Events,Construction,Disaster Relief','Primary Voltage':'120v 1Ph'},
+  {id:'rr_2',        'Item Name':'Restroom Trailer (2-stall)',           Watts:3000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Weddings,Construction','Primary Voltage':'120v 1Ph'},
+  {id:'rr_4',        'Item Name':'Restroom Trailer (4-stall)',           Watts:5000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Concerts','Primary Voltage':'120v 1Ph'},
+  {id:'rr_8',        'Item Name':'Restroom Trailer (8-stall)',           Watts:8000,  Category:'Restroom Trailers',    'Industry Tags':'Events,Festivals,Concerts','Primary Voltage':'120v 1Ph'},
+  {id:'cam_charge',  'Item Name':'Camera / Battery Charging Station',    Watts:500,   Category:'Production & Catering','Industry Tags':'Film+TV,Broadcast,Events','Primary Voltage':'120v 1Ph'},
+  {id:'workstation', 'Item Name':'Laptop / Workstation',                 Watts:200,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Broadcast,Corporate','Primary Voltage':'120v 1Ph'},
+  {id:'craft',       'Item Name':'Craft Service Station',                Watts:1500,  Category:'Production & Catering','Industry Tags':'Film+TV,Events','Primary Voltage':'120v 1Ph'},
+  {id:'coffee',      'Item Name':'Coffee Maker / Warming Station',       Watts:1000,  Category:'Production & Catering','Industry Tags':'Events,Corporate,Film+TV','Primary Voltage':'120v 1Ph'},
+  {id:'fridge',      'Item Name':'Mini-Fridge / Cooler',                 Watts:150,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Disaster Relief','Primary Voltage':'120v 1Ph'},
+  {id:'walkie',      'Item Name':'Walkie-Talkie Charger Bank',           Watts:300,   Category:'Production & Catering','Industry Tags':'Events,Film+TV,Construction,Disaster Relief','Primary Voltage':'120v 1Ph'},
+  {id:'printer',     'Item Name':'Printer / Copier',                     Watts:600,   Category:'Production & Catering','Industry Tags':'Corporate,Events,Broadcast','Primary Voltage':'120v 1Ph'},
 ];
+
+// ─────────────────────────────────────────────
+//  GENERATORS
+// ─────────────────────────────────────────────
+const GENERATORS = [
+  { label:'20 kW',  sub:'Hertz Light',   gph:1.6  },
+  { label:'45 kW',  sub:'Hertz Mid',     gph:3.2  },
+  { label:'100 kW', sub:'Hertz Standard',gph:7.4  },
+  { label:'175 kW', sub:'Hertz Heavy',   gph:13.0 },
+];
+const CO2_LBS_PER_GAL    = 22.4;
+const DIESEL_COST_PER_GAL = 3.80;
 
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let catalog     = [];
-let cart        = {};
-let customs     = [];
-let customIdx   = 0;
-let duration    = 8;
-let activeChips = new Set();
-let searchQuery = '';
-let wasActive   = false;
-let sessionId   = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+let catalog       = [];
+let cart          = {};
+let customs       = [];
+let customIdx     = 0;
+let duration      = 8;
+let activeChips   = new Set();
+let searchQuery   = '';
+let genIdx        = 0;
+let lastKwhTot    = 0;
+let lastRawKW     = 0;
+let wvDistroMode  = false;
+let mlDistroMode  = true;
+let mixedConfigs  = [];
+let mixedConfigIdx = 0;
+let wasActive     = false;
+let sessionId     = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 
 // ─────────────────────────────────────────────
 //  INIT
@@ -1588,12 +1000,27 @@ async function fetchCatalog() {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
     catalog = FALLBACK; return;
   }
+  const CACHE_KEY = 'revolt_catalog_v1';
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) { catalog = JSON.parse(cached); console.log(`ReVolt: loaded ${catalog.length} items from cache`); return; }
+  } catch(e) {}
   try {
     const res  = await fetch(`${APPS_SCRIPT_URL}?action=getCatalog`);
     const data = await res.json();
     if (data.ok && data.catalog?.length > 0) {
-      catalog = data.catalog.map((r, i) => ({ ...r, id:`cat_${i}`, Watts: parseFloat(r.Watts)||0 }));
+      catalog = data.catalog.map((r, i) => {
+        const n = {};
+        Object.keys(r).forEach(k => { n[k.trim()] = r[k]; });
+        n['Item Name']     = n['Item Name']     || n['item name']     || n['ItemName']     || '';
+        n['Category']      = n['Category']      || n['category']      || '';
+        n['Industry Tags'] = n['Industry Tags'] || n['industry tags'] || n['IndustryTags'] || '';
+        n['Watts']         = parseFloat(n['Watts']) || 0;
+        n['id']            = `cat_${i}`;
+        return n;
+      });
       console.log(`ReVolt: loaded ${catalog.length} items from Sheets`);
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(catalog)); } catch(e) {}
     } else { catalog = FALLBACK; }
   } catch { catalog = FALLBACK; }
 }
@@ -1640,11 +1067,10 @@ function filtered() {
 //  RENDER BROWSE
 // ─────────────────────────────────────────────
 function renderBrowse() {
-  const list = document.getElementById('browseList');
+  const list  = document.getElementById('browseList');
   const items = filtered();
   document.getElementById('searchCount').textContent =
     items.length < catalog.length ? `${items.length} shown` : '';
-
   if (!items.length) {
     list.innerHTML = `<div class="rc-browse-empty">No equipment matches.<br>Try clearing a filter or changing your search.</div>`;
     return;
@@ -1662,35 +1088,29 @@ function renderBrowse() {
         const w = parseFloat(item.Watts)||0;
         const kw = w/1000;
         const disp = w >= 1000 ? kw.toFixed(1)+'kW' : w+'W';
-        const sel = cart[item.id] ? 'selected' : '';
-        return `<div class="rc-browse-item ${sel}" id="bi-${item.id}" onclick="toggleItem('${item.id}')">
+        return `<div class="rc-browse-item ${cart[item.id]?'selected':''}" id="bi-${item.id}" onclick="toggleItem('${item.id}')">
           <div class="rc-checkbox"><span class="rc-checkbox-tick">✓</span></div>
           <div class="rc-item-info">
             <div class="rc-item-name">${item['Item Name']}</div>
             <div class="rc-item-watts">${disp} per unit</div>
           </div>
-          <div class="rc-item-kw">${kw >= 0.1 ? kw.toFixed(1)+'kW' : w+'W'}</div>
+          <div class="rc-item-kw">${kw>=.1?kw.toFixed(1)+'kW':w+'W'}</div>
         </div>`;
       }).join('')}
     </div>`).join('');
 }
 
 // ─────────────────────────────────────────────
-//  TOGGLE ITEM
+//  TOGGLE / CART
 // ─────────────────────────────────────────────
 function toggleItem(id) {
   const item = catalog.find(i => i.id === id);
   if (!item) return;
-  if (cart[id]) { delete cart[id]; }
-  else { cart[id] = { item, qty: 1 }; }
+  if (cart[id]) delete cart[id]; else cart[id] = { item, qty:1 };
   const row = document.getElementById(`bi-${id}`);
   if (row) row.classList.toggle('selected', !!cart[id]);
   renderCart(); recalc();
 }
-
-// ─────────────────────────────────────────────
-//  CART QTY
-// ─────────────────────────────────────────────
 function cartQty(id, delta) {
   if (!cart[id]) return;
   cart[id].qty = Math.max(1, cart[id].qty + delta);
@@ -1709,20 +1129,19 @@ function cartRemove(id) {
 function renderCart() {
   const body = document.getElementById('cartBody');
   const meta = document.getElementById('cartMeta');
-  const catalogEntries = Object.entries(cart);
+  const cartEntries = Object.entries(cart);
   const customActive = customs.filter(c => c.name && c.watts > 0);
-  const total = catalogEntries.length + customActive.length;
+  const total = cartEntries.length + customActive.length;
   meta.textContent = total === 1 ? '1 item' : `${total} items`;
-
   if (!total) {
     body.innerHTML = `<div class="rc-cart-empty">No equipment selected yet.<br>Browse or search to get started.</div>`;
+    const foot = document.getElementById('cartFoot');
+    if (foot) foot.style.display = 'none';
     return;
   }
-
   let rawW = 0;
   let html = '<div class="rc-cart-list">';
-
-  catalogEntries.forEach(([id, {item, qty}]) => {
+  cartEntries.forEach(([id, {item, qty}]) => {
     const w = (parseFloat(item.Watts)||0) * qty;
     rawW += w;
     const kw = (w/1000).toFixed(2);
@@ -1742,10 +1161,9 @@ function renderCart() {
       <button class="rc-cart-rm" onclick="cartRemove('${id}')">×</button>
     </div>`;
   });
-
-  customActive.forEach((c, i) => {
-    const realIdx = customs.indexOf(c);
-    const w = c.watts * (c.qty||1);
+  customActive.forEach(c => {
+    const ri = customs.indexOf(c);
+    const w  = c.watts * (c.qty||1);
     rawW += w;
     const kw = (w/1000).toFixed(2);
     html += `<div class="rc-cart-row">
@@ -1755,31 +1173,32 @@ function renderCart() {
         <div class="rc-cart-spec">${c.watts}W × ${c.qty||1}</div>
       </div>
       <div class="rc-qty">
-        <button class="rc-qty-btn" onclick="customQty(${realIdx},-1)">−</button>
+        <button class="rc-qty-btn" onclick="customQty(${ri},-1)">−</button>
         <div class="rc-qty-num">${c.qty||1}</div>
-        <button class="rc-qty-btn" onclick="customQty(${realIdx},1)">+</button>
+        <button class="rc-qty-btn" onclick="customQty(${ri},1)">+</button>
       </div>
       <div class="rc-cart-kw">${kw}kW</div>
-      <button class="rc-cart-rm" onclick="customRemoveFromCart(${realIdx})">×</button>
+      <button class="rc-cart-rm" onclick="customRemoveFromCart(${ri})">×</button>
     </div>`;
   });
-
   html += '</div>';
-
-  const buffKW = (rawW / 1000) * BUFFER;
-  html += `<div class="rc-cart-foot">
-    <span class="rc-cart-foot-label">Total (20% buffer)</span>
-    <span class="rc-cart-foot-kw">${buffKW.toFixed(1)} kW</span>
-  </div>`;
-
   body.innerHTML = html;
+  // Update pinned total bar
+  const buffKW = (rawW/1000) * BUFFER;
+  const foot = document.getElementById('cartFoot');
+  const footKw = document.getElementById('cartFootKw');
+  if (foot && footKw) {
+    foot.style.display = 'flex';
+    foot.querySelector('.rc-cart-foot-label').textContent = 'Total' + (BUFFER_PCT>0?' ('+BUFFER_PCT+'% buffer)':'');
+    footKw.textContent = buffKW.toFixed(1) + ' kW';
+  }
 }
 
 // ─────────────────────────────────────────────
 //  CUSTOM ITEMS
 // ─────────────────────────────────────────────
 function addCustom() {
-  customs.push({ id: customIdx++, name:'', watts:0, qty:1, conf:'estimated', notes:'', gemini:null });
+  customs.push({ id:customIdx++, name:'', watts:0, qty:1, conf:'estimated', notes:'', gemini:null });
   renderCustoms();
 }
 function renderCustoms() {
@@ -1793,8 +1212,7 @@ function renderCustoms() {
         </div>
         <div class="rc-custom-fields">
           <input class="rc-custom-input" placeholder="e.g. Aputure 600d" value="${c.name}"
-            oninput="updCustom(${i},'name',this.value)"
-            onblur="onNameBlur(${i})">
+            oninput="updCustom(${i},'name',this.value)" onblur="onNameBlur(${i})">
           <input class="rc-custom-input" type="number" placeholder="e.g. 720" min="0" value="${c.watts||''}"
             oninput="updCustom(${i},'watts',this.value)">
           <input class="rc-custom-input" type="number" placeholder="1" min="1" value="${c.qty||1}"
@@ -1821,15 +1239,15 @@ function updCustom(i, field, val) {
   renderCart(); recalc();
 }
 function customQty(i, delta) {
-  customs[i].qty = Math.max(1, (customs[i].qty||1) + delta);
+  customs[i].qty = Math.max(1, (customs[i].qty||1)+delta);
   renderCustoms(); renderCart(); recalc();
 }
 function customRemoveFromCart(i) {
-  customs[i].name = ''; customs[i].watts = 0;
+  customs[i].name=''; customs[i].watts=0;
   renderCustoms(); renderCart(); recalc();
 }
 function delCustom(i) {
-  customs.splice(i, 1); renderCustoms(); renderCart(); recalc();
+  customs.splice(i,1); renderCustoms(); renderCart(); recalc();
 }
 
 // ─────────────────────────────────────────────
@@ -1839,8 +1257,8 @@ async function onNameBlur(i) {
   const c = customs[i];
   if (!c.name || c.name.length < 3 || !APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
   try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
+    const res  = await fetch(APPS_SCRIPT_URL, {
+      method:'POST',
       body: JSON.stringify({ action:'geminiLookup', sessionId, itemName:c.name, enteredWatts:c.watts||0, confidence:c.conf, notes:c.notes })
     });
     const data = await res.json();
@@ -1848,12 +1266,9 @@ async function onNameBlur(i) {
     if (data.trigger && data.verifiedWatts) {
       const badge = document.getElementById(`ga-${i}`);
       const text  = document.getElementById(`gt-${i}`);
-      if (badge && text) {
-        text.textContent = `⚡ Spec: ${data.verifiedWatts}W (${data.delta}% diff)`;
-        badge.classList.add('show');
-      }
+      if (badge && text) { text.textContent = `⚡ Spec: ${data.verifiedWatts}W (${data.delta}% diff)`; badge.classList.add('show'); }
     }
-  } catch { /* silent fail */ }
+  } catch {}
 }
 function acceptGemini(i) {
   if (customs[i].gemini?.verifiedWatts) {
@@ -1866,6 +1281,19 @@ function acceptGemini(i) {
 function dismissGemini(i) {
   const b = document.getElementById(`ga-${i}`);
   if (b) b.classList.remove('show');
+}
+
+// ─────────────────────────────────────────────
+//  BUFFER
+// ─────────────────────────────────────────────
+function setBuffer(pct) {
+  BUFFER_PCT = pct;
+  BUFFER     = 1 + pct/100;
+  [0,5,10,20].forEach(p => {
+    const el = document.getElementById(`buf${p}`);
+    if (el) el.classList.toggle('active', p===pct);
+  });
+  recalc();
 }
 
 // ─────────────────────────────────────────────
@@ -1882,7 +1310,7 @@ function setDuration(v) {
 // ─────────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('panelBrowse').style.display = tab==='browse' ? 'flex' : 'none';
-  document.getElementById('panelCustom').style.display = tab==='custom' ? 'flex' : 'none';
+  document.getElementById('panelCustom').style.display = tab==='custom' ? 'block' : 'none';
   document.getElementById('tabBrowse').classList.toggle('active', tab==='browse');
   document.getElementById('tabCustom').classList.toggle('active', tab==='custom');
 }
@@ -1898,18 +1326,23 @@ function onSearch(v) { searchQuery = v; renderBrowse(); }
 function recalc() {
   let totalW = 0;
   const catTotals = {};
+  const demand    = {'120v 1Ph':0,'208v 1Ph':0,'208v 3Ph':0,'240v 1Ph':0,'480v 3Ph':0};
 
   Object.values(cart).forEach(({item, qty}) => {
-    const w = (parseFloat(item.Watts)||0) * qty;
-    totalW += w;
-    const c = item.Category || 'Other';
+    const w   = (parseFloat(item.Watts)||0) * qty;
+    totalW   += w;
+    const c   = item.Category || 'Other';
     catTotals[c] = (catTotals[c]||0) + w;
+    const key = normVoltage(item['Primary Voltage']);
+    demand[key] = (demand[key]||0) + qty;
   });
+
   customs.forEach(c => {
     if (!c.name || !c.watts) return;
     const w = c.watts * (c.qty||1);
     totalW += w;
     catTotals['Custom'] = (catTotals['Custom']||0) + w;
+    demand['120v 1Ph'] += (c.qty||1);
   });
 
   const rawKW  = totalW / 1000;
@@ -1921,9 +1354,14 @@ function recalc() {
   kwEl.innerHTML = `${buffKW.toFixed(1)} <span class="rc-kw-unit">kW</span>`;
   kwEl.className = 'rc-kw-big ' + (rawKW===0?'zero':buffKW<=12?'low':buffKW<=60?'mid':'high');
 
-  // kWh
   document.getElementById('kwhRow').innerHTML =
     `≈ <strong>${kwhTot.toFixed(0)} kWh</strong> over ${duration} hr${duration!==1?'s':''}`;
+
+  // Buffer note
+  const bufNote = document.getElementById('bufferNote');
+  bufNote.textContent = BUFFER_PCT === 0
+    ? 'No safety buffer applied'
+    : `⚠ Includes ${BUFFER_PCT}% safety buffer`;
 
   // Breakdown
   const bdArea = document.getElementById('breakdownArea');
@@ -1935,178 +1373,70 @@ function recalc() {
       <div class="rc-bd-kw">${(w/1000).toFixed(1)} kW</div>
     </div>`).join('');
 
-  // Rec bar
-  updateRecBar(buffKW, kwhTot, rawKW);
+  // Circuit flags
+  function circuitFlags(unitType, unitCount) {
+    const circuits = CIRCUITS[unitType];
+    const flags = [];
+    Object.entries(demand).forEach(([volt, qty]) => {
+      if (!qty) return;
+      const circuit = circuits[volt];
+      if (!circuit) {
+        if (qty > 0) flags.push({ volt, needed:qty, avail:0, label:volt+' not available', distro:'Mule required for '+volt, noUnit:true });
+        return;
+      }
+      const avail = circuit.slots * unitCount;
+      if (qty > avail) flags.push({ volt, needed:qty, avail, label:circuit.label, distro:circuit.distro });
+    });
+    return flags;
+  }
 
-  // Stats
-  updateStats(kwhTot, rawKW);
+  // Unit recommendations
+  const wvP = Math.ceil(buffKW / WEVOLT.kw);
+  const wvE = Math.ceil(kwhTot / WEVOLT.kwh);
+  const wvN = Math.max(wvP, wvE);
+  const wvRuntime = wvN > 0 ? (WEVOLT.kwh * wvN) / buffKW : 0;
+  const wvLim = wvP >= wvE ? 'peak power' : 'runtime';
+
+  const mlP = Math.ceil(buffKW / MULE.kw);
+  const mlE = Math.ceil(kwhTot / MULE.kwh);
+  const mlN = Math.max(mlP, mlE);
+  const mlRuntime = mlN > 0 ? (MULE.kwh * mlN) / buffKW : 0;
+  const mlLim = mlP >= mlE ? 'peak power' : 'runtime';
+
+  const wvFlags = rawKW > 0 ? circuitFlags('wevolt', wvN) : [];
+  const mlFlags = rawKW > 0 ? circuitFlags('mule',   mlN) : [];
+
+  // Mixed
+  mixedConfigs = buildMixedConfigs(buffKW, kwhTot);
+  if (mixedConfigIdx >= mixedConfigs.length) mixedConfigIdx = 0;
 
   // Quote link
   if (rawKW > 0) {
     const subj = encodeURIComponent('Power Calculator Quote Request');
     const body = encodeURIComponent(
       `Hi ReVolt,\n\nPower Calculator results:\n\n` +
-      `• Peak Load (w/ 20% buffer): ${buffKW.toFixed(1)} kW\n` +
+      `• Raw Load: ${rawKW.toFixed(1)} kW\n` +
+      `• With ${BUFFER_PCT}% buffer: ${buffKW.toFixed(1)} kW\n` +
       `• Total Energy: ${kwhTot.toFixed(0)} kWh\n` +
       `• Duration: ${duration} hours\n\nPlease send a quote. Thanks!`
     );
     const href = `mailto:info@revoltfuel.com?subject=${subj}&body=${body}`;
-    document.getElementById('quoteMainBtn').href = href;
+    document.getElementById('quoteMail').href = href;
   }
+
+  // Update rec boxes
+  updateRecBoxes(rawKW, buffKW, kwhTot, wvN, wvLim, wvRuntime, wvFlags, mlN, mlLim, mlRuntime, mlFlags);
+
+  // Stats
+  updateStats(kwhTot, rawKW);
 
   // Log
   debouncedLog(buffKW, kwhTot);
 }
 
-let mixedConfigs  = [];
-let mixedConfigIdx = 0;
-
 // ─────────────────────────────────────────────
-//  CYCLE MIXED CONFIG
+//  REC BOXES
 // ─────────────────────────────────────────────
-function cycleMixed(dir) {
-  if (!mixedConfigs.length) return;
-  mixedConfigIdx = (mixedConfigIdx + dir + mixedConfigs.length) % mixedConfigs.length;
-  renderMixedOption(mixedConfigs[mixedConfigIdx]);
-}
-
-// 4 fixed deployment topology configs
-function buildMixedConfigs(buffKW, kwhTot) {
-  const configs = [];
-
-  // Config 1: Anchor + Satellite
-  // 1 Mule for central heavy load, minimum WeVolts for distributed needs
-  const sat_mules   = Math.max(1, Math.ceil(buffKW / MULE.kw));
-  const sat_muleKWH = sat_mules * MULE.kwh;
-  const sat_wv      = Math.max(1, Math.ceil(Math.max(0, kwhTot - sat_muleKWH) / WEVOLT.kwh));
-  const sat_runtime = (sat_mules * MULE.kwh + sat_wv * WEVOLT.kwh) / buffKW;
-  configs.push({
-    mules: sat_mules, wevolts: sat_wv,
-    name: 'Anchor + Satellite',
-    concept: 'Mule handles the central heavy load. WeVolts dispatched to distributed circuits where cable runs are impractical.',
-    runtime: sat_runtime,
-  });
-
-  // Config 2: Anchor + Array
-  // 1 Mule as base, WeVolts in parallel array (2–6) for wide site coverage
-  const arr_mules  = Math.max(1, Math.ceil(buffKW / MULE.kw));
-  const arr_wv     = Math.min(6, Math.max(2, Math.ceil((kwhTot - arr_mules * MULE.kwh) / WEVOLT.kwh)));
-  const arr_runtime = (arr_mules * MULE.kwh + arr_wv * WEVOLT.kwh) / buffKW;
-  configs.push({
-    mules: arr_mules, wevolts: arr_wv,
-    name: 'Anchor + Array',
-    concept: `Mule as central power hub. ${arr_wv} WeVolts in parallel array via distribution box — maximum site coverage, extended runtime.`,
-    runtime: arr_runtime,
-  });
-
-  // Config 3: Dual Anchor
-  // 2 Mules for large load across two power zones, WeVolts for gap fill
-  const dual_mules  = Math.max(2, Math.ceil(buffKW / MULE.kw));
-  const dual_muleKWH = dual_mules * MULE.kwh;
-  const dual_wv     = Math.max(0, Math.ceil(Math.max(0, kwhTot - dual_muleKWH) / WEVOLT.kwh));
-  const dual_runtime = (dual_mules * MULE.kwh + dual_wv * WEVOLT.kwh) / buffKW;
-  configs.push({
-    mules: dual_mules, wevolts: dual_wv,
-    name: 'Dual Anchor',
-    concept: `Two Mules create independent power zones across the site. ${dual_wv > 0 ? `${dual_wv} WeVolt${dual_wv>1?'s':''} fill distributed needs.` : 'Covers large load without WeVolt support.'}`,
-    runtime: dual_runtime,
-  });
-
-  return configs;
-}
-
-function renderMixedOption(cfg) {
-  if (!cfg) return;
-  setCount('recMxMule', cfg.mules);
-  setCount('recMxWv', cfg.wevolts);
-  document.getElementById('recMxName').textContent = cfg.name;
-  document.getElementById('recMxConcept').textContent = cfg.concept;
-  document.getElementById('recMxRuntime').textContent = `~${cfg.runtime.toFixed(1)} hr runtime`;
-  document.getElementById('mixedIdx').textContent = `${mixedConfigIdx + 1} / ${mixedConfigs.length}`;
-}
-
-
-
-// ─────────────────────────────────────────────
-//  WEVOLT OPTION STATE
-// ─────────────────────────────────────────────
-let wvDistroMode = false;  // false = WeVolt Only, true = WeVolt Parallel + Distro
-
-function renderWvOption(wvN, wvLim, wvRuntime, needsDistro, flags) {
-  const arrows = document.getElementById('recWvArrows');
-  const title  = document.getElementById('recWvTitle');
-  const sub    = document.getElementById('recWvSub');
-  const badge  = document.getElementById('recWvBadge');
-
-  if (!needsDistro) {
-    if (arrows) arrows.style.display = 'none';
-    wvDistroMode = false;
-    badge.textContent = 'WeVolt Only';
-    badge.className = 'rc-rec-badge wevolt';
-    title.textContent = wvN === 1 ? 'WeVolt unit' : 'WeVolt units';
-    sub.textContent = `Sized by ${wvLim} · ~${wvRuntime.toFixed(1)} hr runtime`;
-  } else {
-    if (arrows) arrows.style.display = 'flex';
-    const distroTypes = [...new Set(flags.map(f => f.distro))].join(', ');
-    if (wvDistroMode) {
-      badge.textContent = 'WeVolt Parallel + Distro';
-      badge.className = 'rc-rec-badge wevolt';
-      title.textContent = `${wvN} WeVolt parallel array`;
-      sub.textContent = `${distroTypes} · ~${wvRuntime.toFixed(1)} hr runtime`;
-    } else {
-      badge.textContent = 'WeVolt Only';
-      badge.className = 'rc-rec-badge wevolt';
-      title.textContent = wvN === 1 ? 'WeVolt unit' : 'WeVolt units';
-      sub.textContent = `Circuit limit exceeded · add ${distroTypes} ↑`;
-    }
-  }
-}
-
-function toggleWvDistro() {
-  wvDistroMode = !wvDistroMode;
-  recalc();
-}
-
-// ─────────────────────────────────────────────
-//  MULE OPTION STATE
-// ─────────────────────────────────────────────
-let mlDistroMode = true;  // default to distro when available
-
-function renderMlOption(mlN, mlLim, mlRuntime, needsDistro, flags) {
-  const arrows = document.getElementById('recMlArrows');
-  const title  = document.getElementById('recMlTitle');
-  const sub    = document.getElementById('recMlSub');
-  const badge  = document.getElementById('recMlBadge');
-
-  if (!needsDistro) {
-    if (arrows) arrows.style.display = 'none';
-    mlDistroMode = true; // reset default for next time distro appears
-    badge.textContent = 'Mule Only';
-    badge.className = 'rc-rec-badge mule';
-    title.textContent = mlN === 1 ? 'Mule unit' : 'Mule units';
-    sub.textContent = `Sized by ${mlLim} · ~${mlRuntime.toFixed(1)} hr runtime`;
-  } else {
-    if (arrows) arrows.style.display = 'flex';
-    const distroTypes = [...new Set(flags.map(f => f.distro))].join(', ');
-    if (mlDistroMode) {
-      badge.textContent = 'Mule + Distro';
-      badge.className = 'rc-rec-badge mule';
-      title.textContent = mlN === 1 ? 'Mule + distribution box' : `${mlN} Mules + distro`;
-      sub.textContent = `${distroTypes} · ~${mlRuntime.toFixed(1)} hr runtime`;
-    } else {
-      badge.textContent = 'Mule Only';
-      badge.className = 'rc-rec-badge mule';
-      title.textContent = mlN === 1 ? 'Mule unit' : 'Mule units';
-      sub.textContent = `Circuit limit exceeded · add ${distroTypes} ↑`;
-    }
-  }
-}
-
-function toggleMlDistro() {
-  mlDistroMode = !mlDistroMode;
-  recalc();
-}
-
 function setCount(elId, val) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -2118,128 +1448,236 @@ function setCount(elId, val) {
   }
 }
 
-function updateRecBar(buffKW, kwhTot, rawKW) {
-  const bar = document.getElementById('recBar');
-  const isActive = rawKW > 0;
+function updateRecBoxes(rawKW, buffKW, kwhTot, wvN, wvLim, wvRuntime, wvFlags, mlN, mlLim, mlRuntime, mlFlags) {
+  const dormBar = document.getElementById('recDormantBar');
+  const recSec  = document.getElementById('recSection');
+  const boxes   = document.querySelectorAll('.rc-rec-box');
 
-  if (!isActive) {
-    bar.classList.remove('active');
-    ['recOpt1','recOpt2','recOpt3'].forEach(id => document.getElementById(id).classList.remove('show'));
+  if (rawKW === 0) {
+    dormBar.style.display = 'block';
+    recSec.style.display  = 'none';
+    boxes.forEach(b => b.classList.remove('show'));
     wasActive = false;
-    mixedConfigs = []; mixedConfigIdx = 0;
     wvDistroMode = false; mlDistroMode = true;
+    mixedConfigs = []; mixedConfigIdx = 0;
     return;
   }
 
-  // WeVolt only
-  const wvP = Math.ceil(buffKW / WEVOLT.kw);
-  const wvE = Math.ceil(kwhTot / WEVOLT.kwh);
-  const wvN = Math.max(wvP, wvE);
-  const wvRuntime = (WEVOLT.kwh * wvN) / buffKW;
-  const wvLim = wvP >= wvE ? 'peak power' : 'runtime';
+  dormBar.style.display = 'none';
+  recSec.style.display  = 'grid';
 
-  // Mule only
-  const mlP = Math.ceil(buffKW / MULE.kw);
-  const mlE = Math.ceil(kwhTot / MULE.kwh);
-  const mlN = Math.max(mlP, mlE);
-  const mlRuntime = (MULE.kwh * mlN) / buffKW;
-  const mlLim = mlP >= mlE ? 'peak power' : 'runtime';
-
-  // ── Outlet / circuit constraint check ──
-  // Tally demand per voltage type across all selected items
-  const demand = { '120v 1Ph': 0, '208v 1Ph': 0, '208v 3Ph': 0, '240v 1Ph': 0, '480v 3Ph': 0 };
-  Object.values(cart).forEach(({item, qty}) => {
-    const key = normVoltage(item['Primary Voltage']);
-    demand[key] = (demand[key] || 0) + qty;
-  });
-  customs.forEach(c => { if (c.watts > 0 && c.name) demand['120v 1Ph'] += (c.qty || 1); });
-
-  // Check each circuit type against available slots per unit
-  function circuitFlags(unitType, unitCount) {
-    const circuits = CIRCUITS[unitType];
-    const flags = [];
-    Object.entries(demand).forEach(([volt, qty]) => {
-      if (!qty) return;
-      const circuit = circuits[volt];
-      if (!circuit) {
-        // This voltage not available on this unit type at all
-        if (qty > 0) flags.push({ volt, needed: qty, avail: 0, label: volt + ' not available', distro: 'Mule required for ' + volt, noUnit: true });
-        return;
-      }
-      const avail = circuit.slots * unitCount;
-      if (qty > avail) {
-        flags.push({ volt, needed: qty, avail, label: circuit.label, distro: circuit.distro });
-      }
-    });
-    return flags;
-  }
-
-  const wvFlags = circuitFlags('wevolt', wvN);
-  const mlFlags = circuitFlags('mule', mlN);
-  const wvNeedsDistro = wvFlags.length > 0;
-  const mlNeedsDistro = mlFlags.length > 0;
-
-  // Mixed configs
-  mixedConfigs = buildMixedConfigs(buffKW, kwhTot);
-  if (mixedConfigIdx >= mixedConfigs.length) mixedConfigIdx = 0;
-
-  // ── Render WeVolt option ──
-  setCount('recWvCount', wvN);
-  renderWvOption(wvN, wvLim, wvRuntime, wvNeedsDistro, wvFlags);
-
-  // ── Render Mule option ──
-  setCount('recMlCount', mlN);
-  renderMlOption(mlN, mlLim, mlRuntime, mlNeedsDistro, mlFlags);
-
-  if (mixedConfigs.length) renderMixedOption(mixedConfigs[mixedConfigIdx]);
-
-  // Update quote link on main button
-  const subj = encodeURIComponent('Power Calculator Quote Request');
-  const body = encodeURIComponent(
-    `Hi ReVolt,\n\nPower Calculator results:\n\n` +
-    `• Peak Load (w/ 20% buffer): ${buffKW.toFixed(1)} kW\n` +
-    `• Total Energy: ${kwhTot.toFixed(0)} kWh\n` +
-    `• Duration: ${duration} hours\n\nPlease send a quote. Thanks!`
-  );
-  const href = `mailto:info@revoltfuel.com?subject=${subj}&body=${body}`;
-  document.getElementById('quoteMainBtn').href = href;
-
-  // Animate in if first activation
+  // Animate in on first activation
   if (!wasActive) {
-    bar.classList.add('active');
-    setTimeout(() => document.getElementById('recOpt1').classList.add('show'), 50);
-    setTimeout(() => document.getElementById('recOpt2').classList.add('show'), 160);
-    setTimeout(() => document.getElementById('recOpt3').classList.add('show'), 270);
+    setTimeout(() => document.getElementById('recBoxWv').classList.add('show'), 50);
+    setTimeout(() => document.getElementById('recBoxMl').classList.add('show'), 150);
+    setTimeout(() => document.getElementById('recBoxMix').classList.add('show'), 250);
     wasActive = true;
   } else {
-    bar.classList.add('active');
-    ['recOpt1','recOpt2','recOpt3'].forEach(id => document.getElementById(id).classList.add('show'));
+    boxes.forEach(b => b.classList.add('show'));
+  }
+
+  // WeVolt box
+  renderWvBox(wvN, wvLim, wvRuntime, wvFlags);
+
+  // Mule box
+  renderMlBox(mlN, mlLim, mlRuntime, mlFlags);
+
+  // Mixed box
+  if (mixedConfigs.length) renderMixedBox(mixedConfigs[mixedConfigIdx]);
+}
+
+function renderWvBox(wvN, wvLim, wvRuntime, flags) {
+  setCount('recWvCount', wvN);
+  document.getElementById('recWvTitle').textContent = wvN===1 ? 'WeVolt unit' : 'WeVolt units';
+
+  const ctrl   = document.getElementById('recWvDistroCtrl');
+  const badge  = document.getElementById('recWvBadge');
+  const sub    = document.getElementById('recWvSub');
+  const limit  = document.getElementById('recWvLimit');
+
+  if (!flags.length) {
+    ctrl.classList.remove('show');
+    wvDistroMode = false;
+    badge.textContent = 'WeVolt Only';
+    sub.textContent   = `Sized by ${wvLim} · ~${wvRuntime.toFixed(1)} hr runtime`;
+    limit.style.display = 'none';
+  } else {
+    ctrl.classList.add('show');
+    const distroTypes = [...new Set(flags.map(f => f.distro))].join(', ');
+    if (wvDistroMode) {
+      badge.textContent = 'WeVolt Parallel + Distro';
+      sub.textContent   = `${distroTypes} · ~${wvRuntime.toFixed(1)} hr runtime`;
+      limit.style.display = 'none';
+    } else {
+      badge.textContent = 'WeVolt Only';
+      sub.textContent   = `Sized by ${wvLim} · ~${wvRuntime.toFixed(1)} hr runtime`;
+      limit.textContent = `Circuit limit exceeded → add ${distroTypes}`;
+      limit.style.display = 'block';
+    }
+    document.getElementById('recWvDistroMode').textContent = wvDistroMode ? 'Parallel + Distro Box' : 'Standard (no distro)';
+    document.getElementById('recWvDistroDesc').textContent = wvDistroMode
+      ? distroTypes + ' recommended'
+      : 'Circuit slots exceeded — toggle for distro option';
   }
 }
 
+function renderMlBox(mlN, mlLim, mlRuntime, flags) {
+  setCount('recMlCount', mlN);
+  document.getElementById('recMlTitle').textContent = mlN===1 ? 'Mule unit' : 'Mule units';
+
+  const ctrl   = document.getElementById('recMlDistroCtrl');
+  const badge  = document.getElementById('recMlBadge');
+  const sub    = document.getElementById('recMlSub');
+  const limit  = document.getElementById('recMlLimit');
+
+  if (!flags.length) {
+    ctrl.classList.remove('show');
+    mlDistroMode = true;
+    badge.textContent = 'Mule Only';
+    sub.textContent   = `Sized by ${mlLim} · ~${mlRuntime.toFixed(1)} hr runtime`;
+    limit.style.display = 'none';
+  } else {
+    ctrl.classList.add('show');
+    const distroTypes = [...new Set(flags.map(f => f.distro))].join(', ');
+    if (mlDistroMode) {
+      badge.textContent = 'Mule + Distro';
+      sub.textContent   = `${distroTypes} · ~${mlRuntime.toFixed(1)} hr runtime`;
+      limit.style.display = 'none';
+    } else {
+      badge.textContent = 'Mule Only';
+      sub.textContent   = `Sized by ${mlLim} · ~${mlRuntime.toFixed(1)} hr runtime`;
+      limit.textContent = `Circuit limit exceeded → add ${distroTypes}`;
+      limit.style.display = 'block';
+    }
+    document.getElementById('recMlDistroMode').textContent = mlDistroMode ? 'Mule + Distro Box' : 'Mule Only (no distro)';
+    document.getElementById('recMlDistroDesc').textContent = mlDistroMode
+      ? distroTypes + ' recommended'
+      : 'Circuit slots exceeded — toggle for distro option';
+  }
+}
+
+function toggleWvDistro() { wvDistroMode = !wvDistroMode; recalc(); }
+function toggleMlDistro() { mlDistroMode = !mlDistroMode; recalc(); }
+
 // ─────────────────────────────────────────────
-//  DEBOUNCED CALC LOG
+//  MIXED CONFIGS
+// ─────────────────────────────────────────────
+function buildMixedConfigs(buffKW, kwhTot) {
+  if (buffKW === 0) return [];
+  const configs = [];
+
+  // 1: Anchor + Satellite
+  const s_mules = Math.max(1, Math.ceil(buffKW/MULE.kw));
+  const s_wv    = Math.max(1, Math.ceil(Math.max(0, kwhTot - s_mules*MULE.kwh) / WEVOLT.kwh));
+  const s_rt    = (s_mules*MULE.kwh + s_wv*WEVOLT.kwh) / buffKW;
+  configs.push({ mules:s_mules, wevolts:s_wv, name:'Anchor + Satellite',
+    concept:'Mule handles central heavy load. WeVolts dispatched to distributed circuits where cable runs are impractical.',
+    runtime:s_rt });
+
+  // 2: Anchor + Array
+  const a_mules = Math.max(1, Math.ceil(buffKW/MULE.kw));
+  const a_wv    = Math.min(6, Math.max(2, Math.ceil((kwhTot - a_mules*MULE.kwh) / WEVOLT.kwh)));
+  const a_rt    = (a_mules*MULE.kwh + a_wv*WEVOLT.kwh) / buffKW;
+  configs.push({ mules:a_mules, wevolts:a_wv, name:'Anchor + Array',
+    concept:`Mule as central power hub. ${a_wv} WeVolts in parallel array via distribution box for maximum site coverage.`,
+    runtime:a_rt });
+
+  // 3: Dual Anchor
+  const d_mules = Math.max(2, Math.ceil(buffKW/MULE.kw));
+  const d_wv    = Math.max(0, Math.ceil(Math.max(0, kwhTot - d_mules*MULE.kwh) / WEVOLT.kwh));
+  const d_rt    = (d_mules*MULE.kwh + d_wv*WEVOLT.kwh) / buffKW;
+  configs.push({ mules:d_mules, wevolts:d_wv, name:'Dual Anchor',
+    concept:`Two Mules create independent power zones. ${d_wv>0?d_wv+' WeVolt'+(d_wv>1?'s':'')+' fill distributed needs.':'Mule pair covers full load.'}`,
+    runtime:d_rt });
+
+  return configs;
+}
+
+function renderMixedBox(cfg) {
+  if (!cfg) return;
+  setCount('recMxMule', cfg.mules);
+  setCount('recMxWv', cfg.wevolts);
+  document.getElementById('recMxName').textContent    = cfg.name;
+  document.getElementById('recMxConcept').textContent = cfg.concept;
+  document.getElementById('recMxRuntime').textContent = `~${cfg.runtime.toFixed(1)} hr runtime`;
+  document.getElementById('mixedIdx').textContent     = `${mixedConfigIdx+1} / ${mixedConfigs.length}`;
+}
+
+function cycleMixed(dir) {
+  if (!mixedConfigs.length) return;
+  mixedConfigIdx = (mixedConfigIdx + dir + mixedConfigs.length) % mixedConfigs.length;
+  renderMixedBox(mixedConfigs[mixedConfigIdx]);
+}
+
+// ─────────────────────────────────────────────
+//  GENERATOR SELECTOR
+// ─────────────────────────────────────────────
+function cycleGen(dir) {
+  genIdx = (genIdx + dir + GENERATORS.length) % GENERATORS.length;
+  const g = GENERATORS[genIdx];
+  document.getElementById('genType').textContent = g.label;
+  document.getElementById('genRate').textContent = g.gph + ' gal/hr';
+  document.getElementById('genIdx').textContent  = (genIdx+1) + ' / ' + GENERATORS.length;
+  updateStats(lastKwhTot, lastRawKW);
+}
+
+// ─────────────────────────────────────────────
+//  STATS
+// ─────────────────────────────────────────────
+function updateStats(kwhTot, rawKW) {
+  lastKwhTot = kwhTot; lastRawKW = rawKW;
+  const active  = rawKW > 0;
+  const gen     = GENERATORS[genIdx];
+  const gallons = gen.gph * duration;
+  const co2     = gallons * CO2_LBS_PER_GAL;
+  const cost    = gallons * DIESEL_COST_PER_GAL;
+  function set(id, val, fmt, isActive) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isActive) { el.textContent = fmt(val); el.className = 'rc-stat-value'; }
+    else          { el.textContent = '—';      el.className = 'rc-stat-value zero'; }
+  }
+  set('statDiesel', gallons, v => v.toFixed(1), active);
+  set('statCo2',    co2,     v => Math.round(v).toLocaleString(), active);
+  set('statCost',   cost,    v => '$'+Math.round(v).toLocaleString(), active);
+  set('statHours',  duration, v => v, active);
+}
+
+// ─────────────────────────────────────────────
+//  MODE TOGGLE
+// ─────────────────────────────────────────────
+function toggleMode() {
+  const isLight = document.body.classList.toggle('light-mode');
+  document.getElementById('modeIcon').textContent  = isLight ? '🌑' : '☀️';
+  document.getElementById('modeLabel').textContent = isLight ? 'Dark' : 'Light';
+  try { localStorage.setItem('rc-mode', isLight?'light':'dark'); } catch(e){}
+}
+function initMode() {
+  try { if (localStorage.getItem('rc-mode')==='light') {
+    document.body.classList.add('light-mode');
+    document.getElementById('modeIcon').textContent  = '🌑';
+    document.getElementById('modeLabel').textContent = 'Dark';
+  }} catch(e){}
+}
+
+// ─────────────────────────────────────────────
+//  DEBOUNCED LOG
 // ─────────────────────────────────────────────
 let logTimer;
 function debouncedLog(buffKW, kwhTot) {
   clearTimeout(logTimer);
   logTimer = setTimeout(() => {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE') return;
     const summary = Object.values(cart).map(e=>`${e.qty}x ${e.item['Item Name']}`).join(', ');
-    fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        action:'logCalc', sessionId, duration,
-        equipmentSummary: summary,
-        peakKW: buffKW.toFixed(1),
-        totalKWH: kwhTot.toFixed(0),
-        wevoltRec: Math.max(Math.ceil(buffKW/WEVOLT.kw), Math.ceil(kwhTot/WEVOLT.kwh)),
-        muleRec: Math.max(Math.ceil(buffKW/MULE.kw), Math.ceil(kwhTot/MULE.kwh)),
-        customItemCount: customs.filter(c=>c.name&&c.watts>0).length,
-        correctionCount: customs.filter(c=>c.gemini?.trigger).length,
-        correctionsAccepted: customs.filter(c=>c.gemini?.accepted).length,
-      })
-    }).catch(()=>{});
+    fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
+      action:'logCalc', sessionId, duration, equipmentSummary:summary,
+      peakKW:buffKW.toFixed(1), totalKWH:kwhTot.toFixed(0), bufferPct:BUFFER_PCT,
+      wevoltRec:Math.max(Math.ceil(buffKW/WEVOLT.kw),Math.ceil(kwhTot/WEVOLT.kwh)),
+      muleRec:Math.max(Math.ceil(buffKW/MULE.kw),Math.ceil(kwhTot/MULE.kwh)),
+      customItemCount:customs.filter(c=>c.name&&c.watts>0).length,
+      correctionCount:customs.filter(c=>c.gemini?.trigger).length,
+      correctionsAccepted:customs.filter(c=>c.gemini?.accepted).length,
+    })}).catch(()=>{});
   }, 3000);
 }
 
@@ -2247,91 +1685,21 @@ function debouncedLog(buffKW, kwhTot) {
 //  RESET
 // ─────────────────────────────────────────────
 function resetAll() {
-  cart = {}; customs = []; duration = 8; searchQuery = ''; activeChips.clear(); wasActive = false; wvDistroMode = false; mlDistroMode = true;
-  document.getElementById('durSlider').value = 8;
-  document.getElementById('durVal').innerHTML = '8 <span>hrs</span>';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('recBar').classList.remove('active');
-  ['recOpt1','recOpt2','recOpt3'].forEach(id => document.getElementById(id).classList.remove('show'));
+  cart={}; customs=[]; duration=8; searchQuery=''; activeChips.clear();
+  wasActive=false; wvDistroMode=false; mlDistroMode=true;
+  mixedConfigs=[]; mixedConfigIdx=0;
+  BUFFER_PCT=0; BUFFER=1.0;
+  document.getElementById('durSlider').value=8;
+  document.getElementById('durVal').innerHTML='8 <span>hrs</span>';
+  document.getElementById('searchInput').value='';
+  [0,5,10,20].forEach(p => {
+    const el=document.getElementById(`buf${p}`);
+    if(el) el.classList.toggle('active',p===0);
+  });
   renderChips(); renderBrowse(); renderCustoms(); renderCart(); recalc();
 }
 
-
-// ─────────────────────────────────────────────
-//  GENERATOR SELECTOR + STATS STRIP
-// ─────────────────────────────────────────────
-const CO2_LBS_PER_GAL     = 22.4;
-const DIESEL_COST_PER_GAL = 3.80; // avg 2025 diesel
-
-// 4 common Hertz rental generators — burn rates at 75% load
-const GENERATORS = [
-  { label: '20 kW',  sub: 'Hertz Light',    gph: 1.6  },
-  { label: '45 kW',  sub: 'Hertz Mid',       gph: 3.2  },
-  { label: '100 kW', sub: 'Hertz Standard',  gph: 7.4  },
-  { label: '175 kW', sub: 'Hertz Heavy',     gph: 13.0 },
-];
-
-let genIdx = 0;
-let lastKwhTot = 0;
-let lastRawKW  = 0;
-
-function cycleGen(dir) {
-  genIdx = (genIdx + dir + GENERATORS.length) % GENERATORS.length;
-  const g = GENERATORS[genIdx];
-  document.getElementById('genType').textContent = g.label;
-  document.getElementById('genRate').textContent = g.gph + ' gal/hr';
-  document.getElementById('genIdx').textContent  = (genIdx + 1) + ' / ' + GENERATORS.length;
-  updateStats(lastKwhTot, lastRawKW);
-}
-
-function updateStats(kwhTot, rawKW) {
-  lastKwhTot = kwhTot;
-  lastRawKW  = rawKW;
-  const active = rawKW > 0;
-  const gen     = GENERATORS[genIdx];
-  const gallons = gen.gph * duration;   // gal/hr × hours = total gallons that gen would burn
-  const co2     = gallons * CO2_LBS_PER_GAL;
-  const cost    = gallons * DIESEL_COST_PER_GAL;
-
-  function set(id, val, fmt, isActive) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (isActive) {
-      el.textContent = fmt(val);
-      el.className = 'rc-stat-value';
-    } else {
-      el.textContent = '—';
-      el.className = 'rc-stat-value zero';
-    }
-  }
-
-  set('statDiesel', gallons, v => v.toFixed(1), active);
-  set('statCo2',    co2,     v => Math.round(v).toLocaleString(), active);
-  set('statCost',   cost,    v => '$' + Math.round(v).toLocaleString(), active);
-  set('statHours',  duration, v => v, active);
-}
-
-// ─────────────────────────────────────────────
-//  LIGHT / DARK MODE TOGGLE
-// ─────────────────────────────────────────────
-function toggleMode() {
-  const isLight = document.body.classList.toggle('light-mode');
-  document.getElementById('modeIcon').textContent  = isLight ? '🌑' : '☀️';
-  document.getElementById('modeLabel').textContent = isLight ? 'Dark' : 'Light';
-  localStorage.setItem('rc-mode', isLight ? 'light' : 'dark');
-}
-
-function initMode() {
-  if (localStorage.getItem('rc-mode') === 'light') {
-    document.body.classList.add('light-mode');
-    document.getElementById('modeIcon').textContent  = '🌑';
-    document.getElementById('modeLabel').textContent = 'Dark';
-  }
-}
-
-// ─────────────────────────────────────────────
-//  GO
-// ─────────────────────────────────────────────
+// GO
 initMode();
 init();
 </script>
