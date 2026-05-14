@@ -1,3 +1,37 @@
+<!--
+  ReVolt Power Calculator
+  Version: 20.0
+  Date: May 2026
+  
+  Changelog:
+  v20.0 - 240v phantom circuit warning fix (HMIs corrected to 208v 1Ph)
+        - Generator widget auto-selects smallest gen covering load
+        - Load-factor adjusted burn rates (realistic fuel consumption)
+        - Clean Power stat now shows kWh delivered (not static hours)
+        - Mixed deployment suppressed for small loads
+        - Circuit warning copy translated to customer English
+        - Light mode removed for launch (dark only)
+        - Mobile "best on desktop" banner added
+        - Custom/Other rebuilt as per-item Add Equipment flow
+        - Gemini lookup fires on Add button, inline Accept/Keep Mine alert
+        - Custom items log to Sheets on add
+        - Hero headline: "How much ReVolt does your job need?"
+
+  v19.0 - Full layout rebuild per mockup
+        - Three rec boxes at bottom of page
+        - Buffer slider (0/5/10/20%) replaces fixed 20% buffer
+        - Stats strip as own card below browse panel
+        - Cart total pinned outside scroll area
+        - Distro box logic with circuit-specific warnings
+
+  v18.0 - Outlet/circuit constraint logic across all voltage types
+        - WeVolt and Mule distro arrows
+        - 12kW WeVolt correction
+
+  v17.0 - Live catalog fetch from Google Sheets (161 items)
+        - sessionStorage caching
+        - Apps Script URL baked in
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +87,13 @@ body.light-mode .rc-stats-strip{background:#e8e8e8}
 body.light-mode .rc-stat-card{background:#fff;border-color:#d0d0d0}
 body.light-mode .rc-gen-selector{background:#fff;border-color:#d0d0d0}
 body.light-mode .rc-gen-arrow{background:#e0e0e0;border-color:#bbb;color:#555}
+
+/* Mobile notice */
+.rc-mobile-notice{
+  display:none;background:#1a1a0a;border-bottom:1px solid rgba(251,191,36,.3);
+  padding:8px 20px;text-align:center;font-size:12px;color:var(--yellow);
+}
+@media(max-width:768px){.rc-mobile-notice{display:block}}
 
 /* ── HEADER ── */
 .rc-header{
@@ -192,7 +233,40 @@ body.light-mode .rc-gen-arrow{background:#e0e0e0;border-color:#bbb;color:#555}
 .rc-item-kw{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex-shrink:0}
 .rc-browse-empty{padding:36px 16px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.8}
 
-/* Custom panel */
+
+    /* Custom form */
+    .rc-custom-form{ padding:14px 0 8px; }
+    .rc-custom-form-row{
+      display:flex;align-items:center;gap:8px;margin-top:8px;
+    }
+    .rc-custom-add-btn{
+      background:var(--green);color:#000;border:none;border-radius:var(--radius-sm);
+      font-family:var(--font-display);font-size:14px;letter-spacing:.06em;
+      padding:8px 16px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;
+    }
+    .rc-custom-add-btn:hover{background:#5ae89a;}
+    .rc-custom-add-btn:disabled{background:#2a2a2a;color:var(--text-dim);cursor:not-allowed;}
+    .rc-custom-added-label{
+      font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--text-dim);padding:10px 0 6px;border-top:1px solid var(--border);margin-top:10px;
+    }
+    .rc-custom-added-item{
+      display:flex;align-items:center;gap:8px;padding:7px 0;
+      border-bottom:1px solid #1a1a1a;font-size:12px;
+    }
+    .rc-custom-added-item:last-child{border-bottom:none;}
+    .rc-custom-added-name{flex:1;color:var(--text);}
+    .rc-custom-added-watts{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+    .rc-custom-added-rm{
+      background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+      font-size:13px;padding:2px 4px;border-radius:3px;transition:all .12s;
+    }
+    .rc-custom-added-rm:hover{color:#ef4444;}
+    .rc-spinner{display:inline-block;width:12px;height:12px;border:2px solid #333;
+      border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Custom panel */
 .rc-custom-wrap{height:520px;overflow-y:auto;padding:16px;}
 .rc-custom-wrap::-webkit-scrollbar{width:3px}
 .rc-custom-wrap::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
@@ -562,16 +636,17 @@ footer a:hover{color:var(--green)}
     <div class="rc-logo-sub">Power Calculator</div>
   </div>
   <div class="rc-header-right">
-    <button class="rc-mode-toggle" onclick="toggleMode()" id="modeToggle">
-      <span id="modeIcon">☀️</span><span id="modeLabel">Light</span>
-    </button>
+
     <div class="rc-header-cta">Questions? <a href="tel:4049966496">404-996-6496</a></div>
   </div>
 </header>
 
 <!-- HERO -->
+<div class="rc-mobile-notice">
+  📱 Best experienced on desktop — mobile view coming soon.
+</div>
 <div class="rc-hero">
-  <h1>How much ReVolt does your<br><em>system need?</em></h1>
+  <h1>How much ReVolt does your<br><em>job need?</em></h1>
   <p>Select your equipment and duration below. We'll calculate your exact load and recommend the right ReVolt units in real time.</p>
 </div>
 
@@ -616,9 +691,44 @@ footer a:hover{color:var(--green)}
 
     <!-- Custom -->
     <div id="panelCustom" class="rc-custom-wrap" style="display:none">
-      <div class="rc-custom-intro">Add any equipment not in the catalog. We'll verify the wattage automatically and flag it if your estimate is off by more than 15%.</div>
+      <div class="rc-custom-intro">Enter equipment not in the catalog. Hit Add Equipment and we'll verify the wattage before adding it to your list.</div>
+      <!-- Single input form -->
+      <div class="rc-custom-form" id="customForm">
+        <div class="rc-custom-field-labels">
+          <span class="rc-custom-field-label">Equipment Name</span>
+          <span class="rc-custom-field-label">Watts</span>
+          <span class="rc-custom-field-label">Qty</span>
+        </div>
+        <div class="rc-custom-fields">
+          <input class="rc-custom-input" id="cName" placeholder="e.g. Aputure 600d" autocomplete="off">
+          <input class="rc-custom-input" id="cWatts" type="number" placeholder="e.g. 720" min="0">
+          <input class="rc-custom-input" id="cQty" type="number" placeholder="1" min="1" value="1">
+        </div>
+        <div class="rc-custom-form-row">
+          <select class="rc-custom-conf" id="cConf">
+            <option value="know">I know the wattage</option>
+            <option value="estimated" selected>I estimated it</option>
+            <option value="unsure">Not sure</option>
+          </select>
+          <button class="rc-custom-add-btn" id="customAddBtn" onclick="submitCustomItem()">
+            <span id="customAddLabel">+ Add Equipment</span>
+          </button>
+        </div>
+        <!-- Gemini alert inline -->
+        <div class="rc-gemini-alert" id="customGeminiAlert" style="display:none">
+          <div>
+            <div style="font-weight:600;margin-bottom:3px" id="customGeminiMsg">—</div>
+            <div style="font-size:10px;color:var(--text-dim)" id="customGeminiSrc">—</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="rc-gemini-accept" onclick="acceptCustomGemini()">Use Verified</button>
+            <button class="rc-gemini-keep" onclick="keepCustomWatts()">Keep Mine</button>
+          </div>
+        </div>
+      </div>
+      <!-- Added items list -->
+      <div class="rc-custom-added-label" id="customAddedLabel" style="display:none">Added items</div>
       <div class="rc-custom-items" id="customItems"></div>
-      <button class="rc-add-custom-btn" onclick="addCustom()">+ Add Custom Equipment</button>
     </div>
 
 
@@ -658,7 +768,7 @@ footer a:hover{color:var(--green)}
       <div class="rc-stat-icon">⚡</div>
       <div class="rc-stat-label">Clean Power</div>
       <div class="rc-stat-value zero" id="statHours">—</div>
-      <div class="rc-stat-unit">zero-emission hrs</div>
+      <div class="rc-stat-unit">kWh clean energy</div>
     </div>
   </div>
 
@@ -1195,93 +1305,130 @@ function renderCart() {
 }
 
 // ─────────────────────────────────────────────
-//  CUSTOM ITEMS
+//  CUSTOM ITEMS — per-item add flow
 // ─────────────────────────────────────────────
-function addCustom() {
-  customs.push({ id:customIdx++, name:'', watts:0, qty:1, conf:'estimated', notes:'', gemini:null });
-  renderCustoms();
+let pendingGeminiWatts = null; // holds verified watts waiting for user decision
+
+function clearCustomForm() {
+  document.getElementById('cName').value = '';
+  document.getElementById('cWatts').value = '';
+  document.getElementById('cQty').value = '1';
+  document.getElementById('cConf').value = 'estimated';
+  document.getElementById('customGeminiAlert').style.display = 'none';
+  document.getElementById('customAddLabel').textContent = '+ Add Equipment';
+  document.getElementById('customAddBtn').disabled = false;
+  pendingGeminiWatts = null;
 }
-function renderCustoms() {
-  document.getElementById('customItems').innerHTML = customs.map((c,i) => `
-    <div class="rc-custom-row-wrap">
-      <div class="rc-custom-item" id="ci-${i}">
-        <div class="rc-custom-field-labels">
-          <span class="rc-custom-field-label">Equipment Name</span>
-          <span class="rc-custom-field-label">Watts</span>
-          <span class="rc-custom-field-label">Quantity</span>
-        </div>
-        <div class="rc-custom-fields">
-          <input class="rc-custom-input" placeholder="e.g. Aputure 600d" value="${c.name}"
-            oninput="updCustom(${i},'name',this.value)" onblur="onNameBlur(${i})">
-          <input class="rc-custom-input" type="number" placeholder="e.g. 720" min="0" value="${c.watts||''}"
-            oninput="updCustom(${i},'watts',this.value)">
-          <input class="rc-custom-input" type="number" placeholder="1" min="1" value="${c.qty||1}"
-            oninput="updCustom(${i},'qty',this.value)">
-        </div>
-        <div class="rc-custom-footer">
-          <select class="rc-custom-conf" onchange="updCustom(${i},'conf',this.value)">
-            <option value="know" ${c.conf==='know'?'selected':''}>I know the wattage</option>
-            <option value="estimated" ${!c.conf||c.conf==='estimated'?'selected':''}>I estimated it</option>
-            <option value="unsure" ${c.conf==='unsure'?'selected':''}>Not sure</option>
-          </select>
-          <div class="rc-gemini-alert" id="ga-${i}">
-            <span id="gt-${i}"></span>
-            <button class="rc-gemini-accept" onclick="acceptGemini(${i})">Accept</button>
-            <button class="rc-gemini-keep" onclick="dismissGemini(${i})">Keep mine</button>
-          </div>
-        </div>
-      </div>
-      <button class="rc-custom-del" onclick="delCustom(${i})" title="Remove">×</button>
-    </div>`).join('');
+
+async function submitCustomItem() {
+  const name  = document.getElementById('cName').value.trim();
+  const watts = parseFloat(document.getElementById('cWatts').value) || 0;
+  const qty   = parseInt(document.getElementById('cQty').value) || 1;
+  const conf  = document.getElementById('cConf').value;
+
+  if (!name) { document.getElementById('cName').focus(); return; }
+
+  // Show spinner
+  document.getElementById('customAddLabel').innerHTML = '<span class="rc-spinner"></span>Looking up…';
+  document.getElementById('customAddBtn').disabled = true;
+  document.getElementById('customGeminiAlert').style.display = 'none';
+
+  // Try Gemini lookup
+  let finalWatts = watts;
+  let geminiData = null;
+
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE' && name.length >= 3) {
+    try {
+      const res  = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        body: JSON.stringify({ action:'geminiLookup', sessionId, itemName:name, enteredWatts:watts, confidence:conf })
+      });
+      geminiData = await res.json();
+    } catch(e) { /* silent fail */ }
+  }
+
+  // Check if Gemini found a discrepancy
+  if (geminiData?.ok && geminiData.trigger && geminiData.verifiedWatts) {
+    // Show alert — wait for user decision before adding to cart
+    pendingGeminiWatts = geminiData.verifiedWatts;
+    const diff = geminiData.delta;
+    document.getElementById('customGeminiMsg').textContent =
+      `Spec sheet says ${geminiData.verifiedWatts}W (your estimate is ${diff}% ${geminiData.verifiedWatts > watts ? 'low' : 'high'})`;
+    document.getElementById('customGeminiSrc').textContent =
+      `Source: ${geminiData.source || 'Manufacturer spec'}`;
+    document.getElementById('customGeminiAlert').style.display = 'flex';
+    document.getElementById('customAddLabel').textContent = '+ Add Equipment';
+    document.getElementById('customAddBtn').disabled = false;
+    // Store form state for after decision
+    window._pendingCustom = { name, watts, qty, conf, geminiData };
+    return;
+  }
+
+  // No discrepancy or no lookup — add directly
+  addCustomToCart(name, finalWatts, qty, conf, geminiData);
 }
-function updCustom(i, field, val) {
-  customs[i][field] = (field==='name'||field==='conf') ? val : (parseFloat(val)||0);
-  renderCart(); recalc();
+
+function acceptCustomGemini() {
+  if (!window._pendingCustom) return;
+  const { name, qty, conf, geminiData } = window._pendingCustom;
+  addCustomToCart(name, pendingGeminiWatts, qty, conf, geminiData);
 }
+
+function keepCustomWatts() {
+  if (!window._pendingCustom) return;
+  const { name, watts, qty, conf, geminiData } = window._pendingCustom;
+  addCustomToCart(name, watts, qty, conf, geminiData);
+}
+
+function addCustomToCart(name, watts, qty, conf, geminiData) {
+  const item = { id: customIdx++, name, watts: watts||0, qty, conf, gemini: geminiData };
+  customs.push(item);
+  renderCustomList();
+  renderCart();
+  recalc();
+  clearCustomForm();
+  window._pendingCustom = null;
+
+  // Log to Sheets
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
+      action:'logCustomInput', sessionId,
+      itemName:name, enteredWatts:watts, qty, confidence:conf,
+      geminiWatts: geminiData?.verifiedWatts || null,
+      accepted: geminiData?.trigger ? (watts === (geminiData?.verifiedWatts||watts)) : null
+    })}).catch(()=>{});
+  }
+}
+
+function renderCustomList() {
+  const list  = document.getElementById('customItems');
+  const label = document.getElementById('customAddedLabel');
+  const active = customs.filter(c => c.name && c.watts > 0);
+  label.style.display = active.length ? 'block' : 'none';
+  list.innerHTML = active.map((c, i) => {
+    const ri = customs.indexOf(c);
+    return `<div class="rc-custom-added-item">
+      <div class="rc-custom-added-name">${c.name}</div>
+      <div class="rc-custom-added-watts">${c.watts}W × ${c.qty}</div>
+      <button class="rc-custom-added-rm" onclick="delCustom(${ri})">×</button>
+    </div>`;
+  }).join('');
+}
+
 function customQty(i, delta) {
   customs[i].qty = Math.max(1, (customs[i].qty||1)+delta);
-  renderCustoms(); renderCart(); recalc();
+  renderCustomList(); renderCart(); recalc();
 }
 function customRemoveFromCart(i) {
   customs[i].name=''; customs[i].watts=0;
-  renderCustoms(); renderCart(); recalc();
+  renderCustomList(); renderCart(); recalc();
 }
 function delCustom(i) {
-  customs.splice(i,1); renderCustoms(); renderCart(); recalc();
+  customs.splice(i,1); renderCustomList(); renderCart(); recalc();
 }
+function renderCustoms() { renderCustomList(); }
 
-// ─────────────────────────────────────────────
-//  GEMINI LOOKUP
-// ─────────────────────────────────────────────
-async function onNameBlur(i) {
-  const c = customs[i];
-  if (!c.name || c.name.length < 3 || !APPS_SCRIPT_URL || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') return;
-  try {
-    const res  = await fetch(APPS_SCRIPT_URL, {
-      method:'POST',
-      body: JSON.stringify({ action:'geminiLookup', sessionId, itemName:c.name, enteredWatts:c.watts||0, confidence:c.conf, notes:c.notes })
-    });
-    const data = await res.json();
-    customs[i].gemini = data;
-    if (data.trigger && data.verifiedWatts) {
-      const badge = document.getElementById(`ga-${i}`);
-      const text  = document.getElementById(`gt-${i}`);
-      if (badge && text) { text.textContent = `⚡ Spec: ${data.verifiedWatts}W (${data.delta}% diff)`; badge.classList.add('show'); }
-    }
-  } catch {}
-}
-function acceptGemini(i) {
-  if (customs[i].gemini?.verifiedWatts) {
-    customs[i].watts = customs[i].gemini.verifiedWatts;
-    if (customs[i].gemini) customs[i].gemini.accepted = true;
-    renderCustoms(); renderCart(); recalc();
-  }
-  dismissGemini(i);
-}
-function dismissGemini(i) {
-  const b = document.getElementById(`ga-${i}`);
-  if (b) b.classList.remove('show');
-}
+
 
 // ─────────────────────────────────────────────
 //  BUFFER
@@ -1511,7 +1658,7 @@ function renderWvBox(wvN, wvLim, wvRuntime, flags) {
     } else {
       badge.textContent = 'WeVolt Only';
       sub.textContent   = `Sized by ${wvLim} · ~${wvRuntime.toFixed(1)} hr runtime`;
-      limit.textContent = `Circuit limit exceeded → add ${distroTypes}`;
+      limit.textContent = `Too many connections for one unit — a ${distroTypes} will handle the extras`;
       limit.style.display = 'block';
     }
     document.getElementById('recWvDistroMode').textContent = wvDistroMode ? 'Parallel + Distro Box' : 'Standard (no distro)';
@@ -1546,7 +1693,7 @@ function renderMlBox(mlN, mlLim, mlRuntime, flags) {
     } else {
       badge.textContent = 'Mule Only';
       sub.textContent   = `Sized by ${mlLim} · ~${mlRuntime.toFixed(1)} hr runtime`;
-      limit.textContent = `Circuit limit exceeded → add ${distroTypes}`;
+      limit.textContent = `Too many connections for one unit — a ${distroTypes} will handle the extras`;
       limit.style.display = 'block';
     }
     document.getElementById('recMlDistroMode').textContent = mlDistroMode ? 'Mule + Distro Box' : 'Mule Only (no distro)';
@@ -1564,6 +1711,9 @@ function toggleMlDistro() { mlDistroMode = !mlDistroMode; recalc(); }
 // ─────────────────────────────────────────────
 function buildMixedConfigs(buffKW, kwhTot) {
   if (buffKW === 0) return [];
+  // Suppress Mixed for small loads — only show when meaningful
+  const wvN = Math.max(Math.ceil(buffKW/WEVOLT.kw), Math.ceil(kwhTot/WEVOLT.kwh));
+  if (wvN <= 2 && buffKW < MULE.kw * 0.8) return [];
   const configs = [];
 
   // 1: Anchor + Satellite
@@ -1686,6 +1836,8 @@ function debouncedLog(buffKW, kwhTot) {
 // ─────────────────────────────────────────────
 function resetAll() {
   cart={}; customs=[]; duration=8; searchQuery=''; activeChips.clear();
+  autoGenSet=false;
+  clearCustomForm(); renderCustomList();
   wasActive=false; wvDistroMode=false; mlDistroMode=true;
   mixedConfigs=[]; mixedConfigIdx=0;
   BUFFER_PCT=0; BUFFER=1.0;
