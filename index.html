@@ -1339,12 +1339,14 @@ async function submitCustomItem() {
 
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE' && name.length >= 3) {
     try {
+      console.log('Gemini lookup firing for:', name, watts);
       const res  = await fetch(APPS_SCRIPT_URL, {
         method:'POST',
         body: JSON.stringify({ action:'geminiLookup', sessionId, itemName:name, enteredWatts:watts, confidence:conf })
       });
       geminiData = await res.json();
-    } catch(e) { /* silent fail */ }
+      console.log('Gemini response:', geminiData);
+    } catch(e) { console.error('Gemini lookup failed:', e.message); }
   }
 
   // Check if Gemini found a discrepancy
