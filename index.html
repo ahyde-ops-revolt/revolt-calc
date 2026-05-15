@@ -1632,9 +1632,12 @@ async function submitCustomItem() {
 function acceptCustomGemini() {
   if (!window._pendingCustom) return;
   const { name, qty, conf, geminiData } = window._pendingCustom;
-  // Mark as accepted before adding
   if (geminiData) geminiData.accepted = true;
-  addCustomToCart(name, pendingGeminiWatts, qty, conf, geminiData);
+  // Use canonical name if available and different
+  const finalName = (geminiData?.canonicalName && geminiData.canonicalName.trim())
+    ? geminiData.canonicalName
+    : name;
+  addCustomToCart(finalName, pendingGeminiWatts, qty, conf, geminiData);
 }
 
 function keepCustomWatts() {
