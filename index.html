@@ -1973,6 +1973,11 @@ let mlDistroMode  = true;
 let mixedConfigs  = [];
 let mixedConfigIdx = 0;
 let wasActive     = false;
+let autoGenSet    = false;
+let allConfigs    = [];
+let recIdx        = 0;
+let totalDays     = 1;
+let hrsPerDay     = 8;
 let sessionId     = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 
 // ─────────────────────────────────────────────
@@ -2490,13 +2495,8 @@ function recalc() {
 // ─────────────────────────────────────────────
 
 // Canavan specs
-const CANAVAN = { rechargeTime: 1 }; // hours to recharge a drained Mule
-
-// Gate thresholds
+const CANAVAN = { rechargeTime: 1 };
 const GATE = { wevolt: 6, mule: 2 };
-
-let allConfigs    = [];
-let recIdx        = 0;
 
 function buildAllConfigs(buffKW, kwhTot) {
   if (buffKW === 0) return [];
@@ -2890,6 +2890,40 @@ function resetAll() {
   renderChips(); renderBrowse(); renderCustoms(); renderCart(); recalc();
 }
 
+
+
+// ─────────────────────────────────────────────
+//  DURATION — slider + date range
+// ─────────────────────────────────────────────
+function setDuration(val) { setDurationSlider(+val); }
+
+function setDurationSlider(val) {
+  hrsPerDay = Math.max(1, Math.min(24, val));
+  duration  = hrsPerDay * totalDays;
+  const hpdEl = document.getElementById('hrsPerDayVal');
+  if (hpdEl) hpdEl.innerHTML = hrsPerDay + ' <span>hrs</span>';
+  recalc();
+}
+
+function updateDateRange() {
+  const startEl = document.getElementById('startDate');
+  const endEl   = document.getElementById('endDate');
+  if (!startEl || !endEl) return;
+
+  if (startEl.value && endEl.value) {
+    const start = new Date(startEl.value + 'T00:00:00');
+    const end   = new Date(endEl.value   + 'T00:00:00');
+    if (end < start) { endEl.value = startEl.value; return; }
+    totalDays = Math.round((end - start) / (1000*60*60*24)) + 1;
+  } else {
+    totalDays = 1;
+  }
+
+  duration = hrsPerDay * totalDays;
+  const hpdEl = document.getElementById('hrsPerDayVal');
+  if (hpdEl) hpdEl.innerHTML = hrsPerDay + ' <span>hrs</span>';
+  recalc();
+}
 
 // ─────────────────────────────────────────────
 //  QUOTE MODAL
