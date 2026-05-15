@@ -1,9 +1,36 @@
 <!--
   ReVolt Power Calculator
-  Version: 20.1
+  Version: 20.7
   Date: May 2026
-  
+
   Changelog:
+  v20.7 - Rec box: left-side arrow column outside overlay so cycling
+          works even when gated configs are shown
+        - Cart min-height increased for taller selected equipment list
+        - Rec numbers compacted to 52px
+
+  v20.6 - Version checkpoint (stable revert point)
+
+  v20.5 - Date range selector for multi-day/week/month events
+        - Hours per day slider (1-24, default 8)
+        - Duration = days × hrs/day when dates set
+
+  v20.4 - Single cycling rec box replaces three static boxes
+        - Best match algorithm: right-sized utilization scoring (target 85%)
+        - Canavan auto-recommended when runtime exhausted
+        - Gate overlay: WeVolt >6 or Mule >2 shows config behind overlay
+        - Green/Yellow/Red visual system
+        - Configs ordered by score, gated always last
+
+  v20.3 - Gemini canonical name correction
+        - Official product name used in cart and catalog on accept
+
+  v20.2 - Gemini confidence routing system
+        - Confidence dropdown removed — Gemini always runs
+        - Accept routes to Catalog (90%+) or Pending Review (70-89%)
+        - Override: USER OVERRIDE flag, correct data still captured
+        - Override details passed to sales quote email
+
   v20.1 - Quote form modal with backend POST to Apps Script
         - Confirmation screen on submit
         - Power summary auto-populated from calculator state
