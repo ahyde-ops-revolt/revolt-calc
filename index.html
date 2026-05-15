@@ -829,11 +829,6 @@ footer a:hover{color:var(--green)}
           <input class="rc-custom-input" id="cQty" type="number" placeholder="1" min="1" value="1">
         </div>
         <div class="rc-custom-form-row">
-          <select class="rc-custom-conf" id="cConf">
-            <option value="know">I know the wattage</option>
-            <option value="estimated" selected>I estimated it</option>
-            <option value="unsure">Not sure</option>
-          </select>
           <button class="rc-custom-add-btn" id="customAddBtn" onclick="submitCustomItem()">
             <span id="customAddLabel">+ Add Equipment</span>
           </button>
@@ -843,6 +838,7 @@ footer a:hover{color:var(--green)}
           <div>
             <div style="font-weight:600;margin-bottom:3px" id="customGeminiMsg">—</div>
             <div style="font-size:10px;color:var(--text-dim)" id="customGeminiSrc">—</div>
+            <div style="font-size:10px;color:var(--text-dim);margin-top:2px" id="customGeminiNote">—</div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
             <button class="rc-gemini-accept" onclick="acceptCustomGemini()">Use Verified</button>
@@ -1587,7 +1583,7 @@ async function submitCustomItem() {
   const name  = document.getElementById('cName').value.trim();
   const watts = parseFloat(document.getElementById('cWatts').value) || 0;
   const qty   = parseInt(document.getElementById('cQty').value) || 1;
-  const conf  = document.getElementById('cConf').value;
+  const conf  = 'estimated'; // confidence always estimated for custom items
 
   if (!name) { document.getElementById('cName').focus(); return; }
 
@@ -1636,17 +1632,27 @@ async function submitCustomItem() {
 function acceptCustomGemini() {
   if (!window._pendingCustom) return;
   const { name, qty, conf, geminiData } = window._pendingCustom;
+  // Mark as accepted before adding
+  if (geminiData) geminiData.accepted = true;
   addCustomToCart(name, pendingGeminiWatts, qty, conf, geminiData);
 }
 
 function keepCustomWatts() {
   if (!window._pendingCustom) return;
   const { name, watts, qty, conf, geminiData } = window._pendingCustom;
+  // Mark as override
+  if (geminiData) geminiData.accepted = false;
   addCustomToCart(name, watts, qty, conf, geminiData);
 }
 
 function addCustomToCart(name, watts, qty, conf, geminiData) {
-  const item = { id: customIdx++, name, watts: watts||0, qty, conf, gemini: geminiData };
+  const triggered = geminiData?.trigger || false;
+  const accepted  = triggered ? (geminiData?.accepted === true) : null;
+  const item = {
+    id: customIdx++, name, watts: watts||0, qty, conf, gemini: geminiData,
+    override: triggered && accepted === false,
+    geminiWatts: geminiData?.verifiedWatts || null
+  };
   customs.push(item);
   renderCustomList();
   renderCart();
@@ -1654,13 +1660,23 @@ function addCustomToCart(name, watts, qty, conf, geminiData) {
   clearCustomForm();
   window._pendingCustom = null;
 
-  // Log to Sheets
+  // Log to Sheets with full routing info
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    const triggered = geminiData?.trigger || false;
+    const accepted  = triggered ? (geminiData?.accepted === true) : null;
     fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
       action:'logCustomInput', sessionId,
-      itemName:name, enteredWatts:watts, qty, confidence:conf,
-      geminiWatts: geminiData?.verifiedWatts || null,
-      accepted: geminiData?.trigger ? (watts === (geminiData?.verifiedWatts||watts)) : null
+      itemName: name,
+      enteredWatts: watts,
+      qty,
+      confidence: conf,
+      geminiWatts:    geminiData?.verifiedWatts || null,
+      geminiSource:   geminiData?.source || null,
+      geminiConfidence: geminiData?.confidence || null,
+      geminiNotes:    geminiData?.notes || null,
+      triggered,
+      accepted,
+      override: triggered && accepted === false
     })}).catch(()=>{});
   }
 }
@@ -2205,6 +2221,8 @@ async function submitQuoteForm() {
     muleRec:       mlRec,
     equipmentSummary: fullSummary,
     customItemCount:  customs.filter(c=>c.name&&c.watts>0).length,
+    overrideCount,
+    overrideDetails,
     correctionCount:  customs.filter(c=>c.gemini?.trigger).length,
     correctionsAccepted: customs.filter(c=>c.gemini?.accepted).length,
   };
