@@ -1563,7 +1563,33 @@ footer a:hover{color:var(--green)}
         <span class="rc-dur-label">Event Duration</span>
         <span class="rc-dur-val" id="durVal">8 <span>hrs</span></span>
       </div>
-      <input type="range" id="durSlider" min="1" max="24" value="8" oninput="setDuration(this.value)">
+
+      <!-- Date range pickers -->
+      <div class="rc-date-row">
+        <div class="rc-date-field">
+          <div class="rc-date-label">Start Date</div>
+          <input type="date" class="rc-date-input" id="startDate" onchange="updateDateRange()">
+        </div>
+        <div class="rc-date-field">
+          <div class="rc-date-label">End Date</div>
+          <input type="date" class="rc-date-input" id="endDate" onchange="updateDateRange()">
+        </div>
+      </div>
+
+      <!-- Hours per day -->
+      <div class="rc-hrs-row">
+        <div class="rc-hrs-label">Hrs of operation / day:</div>
+        <input type="number" class="rc-hrs-input" id="hrsPerDay" min="1" max="24" value="8" oninput="updateDateRange()">
+      </div>
+
+      <!-- Summary -->
+      <div class="rc-dur-summary" id="durSummary" style="margin-bottom:10px">
+        <span id="durSummaryText">Single day · 8 hrs of operation</span>
+      </div>
+
+      <!-- Slider for single-day -->
+      <input type="range" id="durSlider" min="1" max="24" value="8" oninput="setDurationSlider(+this.value)">
+
       <div class="rc-buffer-row">
         <span class="rc-buffer-label">Safety Buffer</span>
         <div class="rc-buffer-stops">
@@ -2536,7 +2562,7 @@ function buildAllConfigs(buffKW, kwhTot) {
   const mlE = Math.ceil(kwhTot / MULE.kwh);
   const mlN = Math.max(mlP, mlE);
   if (mlN >= 1 && (buffKW > WEVOLT.kw * 2 || wvN > 2)) {
-    const mlRuntime = (MULE.kwh * mlN) / buffKW;
+    const mlOnlyRuntime = (MULE.kwh * mlN) / buffKW;
     const mlFlags   = circuitFlagsFor('mule', mlN);
     const mlGated   = mlN > GATE.mule;
     configs.push({
@@ -2545,9 +2571,9 @@ function buildAllConfigs(buffKW, kwhTot) {
       wevolts:  0,
       mules:    mlN,
       canavan:  false,
-      runtime:  mlRuntime,
+      runtime:  mlOnlyRuntime,
       sizingBy: mlP >= mlE ? 'peak power' : 'runtime',
-      concept:  `${mlN} Mule unit${mlN>1?'s':''} · ~${mlRuntime.toFixed(1)} hr runtime`,
+      concept:  `${mlN} Mule unit${mlN>1?'s':''} · ~${mlOnlyRuntime.toFixed(1)} hr runtime`,
       flags:    mlFlags,
       gated:    mlGated,
       gateMsg:  `For deployments requiring more than ${GATE.mule} Mule units, our team needs to configure your package.`,
@@ -2558,8 +2584,8 @@ function buildAllConfigs(buffKW, kwhTot) {
 
   // ── 3. Mule + Canavan — only when Mule runtime genuinely needs extension ──
   // Only show if: Mule is relevant AND runtime would run out without Canavan
-  const mlRuntime = mlN > 0 ? (MULE.kwh * mlN) / buffKW : 999;
-  if (mlN >= 1 && mlN <= GATE.mule && buffKW > WEVOLT.kw * 2 && mlRuntime < duration) {
+  const mlRuntimeCheck = mlN > 0 ? (MULE.kwh * mlN) / buffKW : 999;
+  if (mlN >= 1 && mlN <= GATE.mule && buffKW > WEVOLT.kw * 2 && mlRuntimeCheck < duration) {
     const cavCycles   = Math.ceil(duration / (MULE.kwh / buffKW * mlN)) - 1;
     const effectiveKwh = MULE.kwh * mlN + (cavCycles * MULE.kwh * 2); // 1 Canavan recharges 2 Mules
     const mlCavRuntime = effectiveKwh / buffKW;
@@ -2618,8 +2644,7 @@ function buildAllConfigs(buffKW, kwhTot) {
   const mxcCycles  = Math.max(1, Math.ceil(duration / (MULE.kwh / buffKW * mxMules)) - 1);
   const mxcRuntime = (mxMules * MULE.kwh * (1 + mxcCycles * 0.8) + mxWv * WEVOLT.kwh) / buffKW;
   const mxcGated   = mxMules > GATE.mule || mxWv > GATE.wevolt;
-  const mxBaseRuntime = mxRuntime || 0;
-  if (mxWv >= 1 && mxMules >= 1 && showMixed && mxBaseRuntime < duration) {
+  if (mxWv >= 1 && mxMules >= 1 && showMixed && (mxRuntime || 0) < duration) {
     configs.push({
       id:       'mixed_canavan',
       label:    'WeVolt + Mule + Canavan',
