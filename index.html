@@ -1832,8 +1832,8 @@ function recalc() {
       `• Total Energy: ${kwhTot.toFixed(0)} kWh\n` +
       `• Duration: ${duration} hours\n\nPlease send a quote. Thanks!`
     );
-    const href = `mailto:info@revoltfuel.com?subject=${subj}&body=${body}`;
-    document.getElementById('quoteMail').href = href;
+    // mailto fallback removed — quote form modal handles submission
+    // const href = `mailto:...`;
   }
 
   // Update rec boxes
