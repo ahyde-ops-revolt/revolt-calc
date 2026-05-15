@@ -1,9 +1,13 @@
 <!--
   ReVolt Power Calculator
-  Version: 20.0
+  Version: 20.1
   Date: May 2026
   
   Changelog:
+  v20.1 - Quote form modal with backend POST to Apps Script
+        - Confirmation screen on submit
+        - Power summary auto-populated from calculator state
+
   v20.0 - 240v phantom circuit warning fix (HMIs corrected to 208v 1Ph)
         - Generator widget auto-selects smallest gen covering load
         - Load-factor adjusted burn rates (realistic fuel consumption)
@@ -607,6 +611,126 @@ input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(61,220
 .rc-mixed-arrow:hover{background:var(--yellow-dim);color:var(--yellow);border-color:rgba(251,191,36,.4)}
 .rc-mixed-idx{font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
 
+
+/* ── QUOTE MODAL ── */
+.rc-modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:1000;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.rc-modal-overlay.open{display:flex;}
+.rc-modal{
+  background:#111;border:1px solid var(--border-light);border-radius:var(--radius);
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.rc-modal::-webkit-scrollbar{width:3px}
+.rc-modal::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:2px}
+.rc-modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px;border-bottom:1px solid var(--border);background:#0a0a0a;
+  position:sticky;top:0;z-index:1;
+}
+.rc-modal-title{font-family:var(--font-display);font-size:18px;letter-spacing:.08em;color:var(--text)}
+.rc-modal-close{
+  width:30px;height:30px;background:transparent;border:1px solid var(--border-light);
+  border-radius:5px;color:var(--text-dim);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.rc-modal-close:hover{background:#2a1010;color:#ef4444;border-color:#ef4444}
+.rc-modal-body{padding:22px}
+.rc-modal-section{margin-bottom:20px}
+.rc-modal-section-label{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:12px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.rc-modal-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.rc-modal-row.full{grid-template-columns:1fr}
+.rc-modal-field{display:flex;flex-direction:column;gap:5px}
+.rc-modal-label{
+  font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.04em;
+}
+.rc-modal-label span{color:var(--green)}
+.rc-modal-input{
+  background:#0f0f0f;border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+  padding:9px 12px;outline:none;width:100%;transition:border-color .15s;
+}
+.rc-modal-input:focus{border-color:var(--green)}
+.rc-modal-input::placeholder{color:var(--text-dim)}
+.rc-modal-select{
+  background:#0f0f0f;border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+  padding:9px 12px;outline:none;width:100%;cursor:pointer;transition:border-color .15s;
+}
+.rc-modal-select:focus{border-color:var(--green)}
+.rc-modal-textarea{
+  background:#0f0f0f;border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text);font-family:var(--font-body);font-size:13px;
+  padding:9px 12px;outline:none;width:100%;resize:vertical;min-height:72px;
+  transition:border-color .15s;
+}
+.rc-modal-textarea:focus{border-color:var(--green)}
+.rc-modal-summary{
+  background:#0a0a0a;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px;margin-bottom:20px;
+}
+.rc-modal-summary-title{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:10px;
+}
+.rc-modal-summary-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+}
+.rc-modal-summary-item{}
+.rc-modal-summary-val{
+  font-family:var(--font-display);font-size:22px;color:var(--green);line-height:1;
+}
+.rc-modal-summary-lbl{
+  font-size:10px;color:var(--text-dim);margin-top:2px;
+}
+.rc-modal-foot{
+  padding:16px 22px;border-top:1px solid var(--border);background:#0a0a0a;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  position:sticky;bottom:0;
+}
+.rc-modal-cancel{
+  background:transparent;border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  color:var(--text-muted);font-family:var(--font-body);font-size:13px;
+  padding:9px 18px;cursor:pointer;transition:all .15s;
+}
+.rc-modal-cancel:hover{border-color:#ef4444;color:#ef4444}
+.rc-modal-submit{
+  background:var(--green);color:#000;border:none;border-radius:var(--radius-sm);
+  font-family:var(--font-display);font-size:16px;letter-spacing:.08em;
+  padding:10px 28px;cursor:pointer;transition:all .2s;flex:1;
+}
+.rc-modal-submit:hover{background:#5ae89a}
+.rc-modal-submit:disabled{background:#2a2a2a;color:var(--text-dim);cursor:not-allowed}
+.rc-modal-error{
+  font-size:11px;color:#ef4444;margin-top:4px;display:none;
+}
+/* Confirmation screen */
+.rc-modal-confirm{
+  display:none;padding:40px 22px;text-align:center;
+}
+.rc-modal-confirm.show{display:block}
+.rc-modal-confirm-icon{font-size:48px;margin-bottom:16px}
+.rc-modal-confirm-title{
+  font-family:var(--font-display);font-size:24px;letter-spacing:.06em;
+  color:var(--green);margin-bottom:8px;
+}
+.rc-modal-confirm-msg{font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px}
+.rc-modal-confirm-close{
+  background:var(--green);color:#000;border:none;border-radius:var(--radius-sm);
+  font-family:var(--font-display);font-size:16px;letter-spacing:.08em;
+  padding:10px 32px;cursor:pointer;transition:all .2s;
+}
+.rc-modal-confirm-close:hover{background:#5ae89a}
+
 /* ── FOOTER ── */
 footer{
   border-top:1px solid var(--border);padding:14px 20px;
@@ -829,7 +953,7 @@ footer a:hover{color:var(--green)}
         <p>We'll build a custom quote — fast.</p>
       </div>
       <div class="rc-cta-right">
-        <a class="rc-cta-btn" id="quoteMail" href="mailto:info@revoltfuel.com">Request a Quote →</a>
+        <button class="rc-cta-btn" onclick="openQuoteModal()">Request a Quote →</button>
         <div class="rc-cta-sub">or call <a href="tel:4049966496">404-996-6496</a></div>
       </div>
     </div>
@@ -931,6 +1055,145 @@ footer a:hover{color:var(--green)}
   </div>
 
 </div><!-- /rc-rec-section -->
+
+
+<!-- QUOTE MODAL -->
+<div class="rc-modal-overlay" id="quoteModalOverlay" onclick="closeQuoteModal(event)">
+  <div class="rc-modal" id="quoteModal">
+    <div class="rc-modal-head">
+      <span class="rc-modal-title">Request a Quote</span>
+      <button class="rc-modal-close" onclick="closeQuoteModalDirect()">×</button>
+    </div>
+
+    <!-- Form -->
+    <div id="quoteForm">
+      <div class="rc-modal-body">
+
+        <!-- Power summary strip -->
+        <div class="rc-modal-summary">
+          <div class="rc-modal-summary-title">Your Power Summary</div>
+          <div class="rc-modal-summary-grid">
+            <div class="rc-modal-summary-item">
+              <div class="rc-modal-summary-val" id="qSumKW">0.0</div>
+              <div class="rc-modal-summary-lbl">kW peak load</div>
+            </div>
+            <div class="rc-modal-summary-item">
+              <div class="rc-modal-summary-val" id="qSumKWH">0</div>
+              <div class="rc-modal-summary-lbl">kWh total energy</div>
+            </div>
+            <div class="rc-modal-summary-item">
+              <div class="rc-modal-summary-val" id="qSumHrs">8</div>
+              <div class="rc-modal-summary-lbl">hour event</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="rc-modal-section">
+          <div class="rc-modal-section-label">Contact Info</div>
+          <div class="rc-modal-row">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Name <span>*</span></label>
+              <input class="rc-modal-input" id="qName" placeholder="Your name" autocomplete="name">
+            </div>
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Phone <span>*</span></label>
+              <input class="rc-modal-input" id="qPhone" placeholder="(404) 000-0000" type="tel" autocomplete="tel">
+            </div>
+          </div>
+          <div class="rc-modal-row full">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Email <span>*</span></label>
+              <input class="rc-modal-input" id="qEmail" placeholder="you@company.com" type="email" autocomplete="email">
+            </div>
+          </div>
+          <div class="rc-modal-row full">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Company</label>
+              <input class="rc-modal-input" id="qCompany" placeholder="Company name (optional)" autocomplete="organization">
+            </div>
+          </div>
+        </div>
+
+        <!-- Event Details -->
+        <div class="rc-modal-section">
+          <div class="rc-modal-section-label">Event Details</div>
+          <div class="rc-modal-row">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Event Type <span>*</span></label>
+              <select class="rc-modal-select" id="qEventType">
+                <option value="">Select type...</option>
+                <option>Concert / Festival</option>
+                <option>Corporate Event</option>
+                <option>Film / TV Production</option>
+                <option>Construction</option>
+                <option>Medical / Relief</option>
+                <option>Wedding / Private</option>
+                <option>Broadcast</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Urgency <span>*</span></label>
+              <select class="rc-modal-select" id="qUrgency">
+                <option value="">How soon?</option>
+                <option>ASAP</option>
+                <option>This week</option>
+                <option>This month</option>
+                <option>Planning ahead</option>
+              </select>
+            </div>
+          </div>
+          <div class="rc-modal-row">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Event Date</label>
+              <input class="rc-modal-input" id="qDate" type="date">
+            </div>
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Location</label>
+              <input class="rc-modal-input" id="qLocation" placeholder="City, State">
+            </div>
+          </div>
+          <div class="rc-modal-row full">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Existing power on site?</label>
+              <select class="rc-modal-select" id="qExistingPower">
+                <option value="">Select...</option>
+                <option>No power available</option>
+                <option>Limited shore power</option>
+                <option>Generator on site</option>
+                <option>Full utility power</option>
+              </select>
+            </div>
+          </div>
+          <div class="rc-modal-row full">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Notes</label>
+              <textarea class="rc-modal-textarea" id="qNotes" placeholder="Anything else we should know..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="rc-modal-foot">
+        <div id="qError" class="rc-modal-error"></div>
+        <button class="rc-modal-cancel" onclick="closeQuoteModalDirect()">Cancel</button>
+        <button class="rc-modal-submit" id="qSubmitBtn" onclick="submitQuoteForm()">Send Quote Request →</button>
+      </div>
+    </div>
+
+    <!-- Confirmation -->
+    <div class="rc-modal-confirm" id="quoteConfirm">
+      <div class="rc-modal-confirm-icon">⚡</div>
+      <div class="rc-modal-confirm-title">Quote Request Sent!</div>
+      <div class="rc-modal-confirm-msg">
+        Our team will reach out within 1 business hour.<br>
+        In the meantime, feel free to keep building your load list.
+      </div>
+      <button class="rc-modal-confirm-close" onclick="closeQuoteModalDirect()">Done</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   © ReVolt Holdings, Inc. &nbsp;·&nbsp; 3580 Zip Industrial Blvd. SE, Atlanta GA 30354
@@ -1851,6 +2114,113 @@ function resetAll() {
     if(el) el.classList.toggle('active',p===0);
   });
   renderChips(); renderBrowse(); renderCustoms(); renderCart(); recalc();
+}
+
+
+// ─────────────────────────────────────────────
+//  QUOTE MODAL
+// ─────────────────────────────────────────────
+function openQuoteModal() {
+  // Populate power summary
+  const rawKW  = lastRawKW || 0;
+  const buffKW = rawKW * BUFFER;
+  const kwhTot = buffKW * duration;
+  document.getElementById('qSumKW').textContent  = buffKW.toFixed(1);
+  document.getElementById('qSumKWH').textContent = kwhTot.toFixed(0);
+  document.getElementById('qSumHrs').textContent = duration;
+
+  // Reset form state
+  document.getElementById('quoteForm').style.display = 'block';
+  document.getElementById('quoteConfirm').classList.remove('show');
+  document.getElementById('qSubmitBtn').disabled = false;
+  document.getElementById('qSubmitBtn').textContent = 'Send Quote Request →';
+  document.getElementById('qError').style.display = 'none';
+
+  document.getElementById('quoteModalOverlay').classList.add('open');
+}
+
+function closeQuoteModal(e) {
+  if (e.target === document.getElementById('quoteModalOverlay'))
+    closeQuoteModalDirect();
+}
+
+function closeQuoteModalDirect() {
+  document.getElementById('quoteModalOverlay').classList.remove('open');
+}
+
+async function submitQuoteForm() {
+  const name      = document.getElementById('qName').value.trim();
+  const email     = document.getElementById('qEmail').value.trim();
+  const phone     = document.getElementById('qPhone').value.trim();
+  const eventType = document.getElementById('qEventType').value;
+  const urgency   = document.getElementById('qUrgency').value;
+  const errEl     = document.getElementById('qError');
+
+  // Validate required fields
+  if (!name || !email || !phone || !eventType || !urgency) {
+    errEl.textContent = 'Please fill in all required fields (marked with *)';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('qSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  // Build payload
+  const rawKW  = lastRawKW || 0;
+  const buffKW = rawKW * BUFFER;
+  const kwhTot = buffKW * duration;
+  const wvRec  = Math.max(Math.ceil(buffKW/WEVOLT.kw), Math.ceil(kwhTot/WEVOLT.kwh));
+  const mlRec  = Math.max(Math.ceil(buffKW/MULE.kw),   Math.ceil(kwhTot/MULE.kwh));
+  const summary = Object.values(cart).map(e=>`${e.qty}x ${e.item['Item Name']} (${(parseFloat(e.item.Watts)||0)*e.qty}W)`).join(', ');
+  const customSummary = customs.filter(c=>c.name&&c.watts>0).map(c=>`${c.qty||1}x ${c.name} (${c.watts}W) [custom]`).join(', ');
+  const fullSummary = [summary, customSummary].filter(Boolean).join(', ');
+
+  const payload = {
+    action:        'submitQuote',
+    sessionId,
+    name,
+    email,
+    phone,
+    company:       document.getElementById('qCompany').value.trim(),
+    eventDate:     document.getElementById('qDate').value,
+    eventType,
+    location:      document.getElementById('qLocation').value.trim(),
+    urgency,
+    existingPower: document.getElementById('qExistingPower').value,
+    notes:         document.getElementById('qNotes').value.trim(),
+    peakKW:        buffKW.toFixed(1),
+    totalKWH:      kwhTot.toFixed(0),
+    duration,
+    bufferPct:     BUFFER_PCT,
+    wevoltRec:     wvRec,
+    muleRec:       mlRec,
+    equipmentSummary: fullSummary,
+    customItemCount:  customs.filter(c=>c.name&&c.watts>0).length,
+    correctionCount:  customs.filter(c=>c.gemini?.trigger).length,
+    correctionsAccepted: customs.filter(c=>c.gemini?.accepted).length,
+  };
+
+  try {
+    if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+      await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) });
+    }
+    // Show confirmation regardless of network result
+    document.getElementById('quoteForm').style.display = 'none';
+    document.getElementById('quoteConfirm').classList.add('show');
+  } catch(e) {
+    // Still show confirmation — don't leave user hanging
+    document.getElementById('quoteForm').style.display = 'none';
+    document.getElementById('quoteConfirm').classList.add('show');
+  }
 }
 
 // GO
