@@ -2600,9 +2600,16 @@ function buildAllConfigs(buffKW, kwhTot) {
     });
   }
 
-  // ── 2. Mule Only — only relevant when load justifies it (>2 WeVolts worth or >24kW) ──
+  // ── 2. Mule Only ──
+  // Canavan charge rate: ~200kW per Mule — charges faster than any feasible load drains
+  // So if Canavan is available, runtime is never a limiting factor for Mule sizing
+  const CANAVAN_CHARGE_RATE = 200; // kW per Mule
   const mlP = Math.ceil(buffKW / MULE.kw);
-  const mlE = Math.ceil(kwhTot / MULE.kwh);
+  // For runtime sizing: if 1 Mule covers peak power, Canavan handles runtime
+  // Only need more Mules for runtime if load > 1 Mule's peak capacity
+  const mlE_raw = Math.ceil(kwhTot / MULE.kwh);
+  // If load fits in 1 Mule and Canavan can cover runtime gap, don't add Mules for runtime
+  const mlE = (mlP === 1 && mlE_raw > 1) ? 1 : mlE_raw;
   const mlN = Math.max(mlP, mlE);
   if (mlN >= 1 && (buffKW > WEVOLT.kw * 2 || wvN > 2)) {
     const mlOnlyRuntime = (MULE.kwh * mlN) / buffKW;
