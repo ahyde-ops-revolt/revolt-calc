@@ -2942,19 +2942,36 @@ function debouncedLog(buffKW, kwhTot) {
 //  RESET
 // ─────────────────────────────────────────────
 function resetAll() {
-  cart={}; customs=[]; duration=8; searchQuery=''; activeChips.clear();
-  autoGenSet=false;
-  clearCustomForm(); renderCustomList();
-  wasActive=false; wvDistroMode=false; mlDistroMode=true;
+  // Core state
+  cart={}; customs=[]; searchQuery=''; activeChips.clear();
+  autoGenSet=false; wasActive=false;
+  wvDistroMode=false; mlDistroMode=true;
   mixedConfigs=[]; mixedConfigIdx=0;
+  allConfigs=[]; recIdx=0;
+
+  // Duration
+  duration=8; totalDays=1; hrsPerDay=8;
+  const slider = document.getElementById('durSlider');
+  if (slider) slider.value = 8;
+  const hpdEl = document.getElementById('hrsPerDayVal');
+  if (hpdEl) hpdEl.innerHTML = '8 <span>hrs</span>';
+  const startEl = document.getElementById('startDate');
+  const endEl   = document.getElementById('endDate');
+  if (startEl) startEl.value = '';
+  if (endEl)   endEl.value   = '';
+
+  // Buffer
   BUFFER_PCT=0; BUFFER=1.0;
-  document.getElementById('durSlider').value=8;
-  document.getElementById('durVal').innerHTML='8 <span>hrs</span>';
-  document.getElementById('searchInput').value='';
   [0,5,10,20].forEach(p => {
     const el=document.getElementById(`buf${p}`);
     if(el) el.classList.toggle('active',p===0);
   });
+
+  // Search
+  const searchEl = document.getElementById('searchInput');
+  if (searchEl) searchEl.value = '';
+
+  clearCustomForm(); renderCustomList();
   renderChips(); renderBrowse(); renderCustoms(); renderCart(); recalc();
 }
 
