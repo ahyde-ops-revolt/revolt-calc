@@ -1816,8 +1816,18 @@ footer a:hover{color:var(--green)}
           </div>
           <div class="rc-modal-row">
             <div class="rc-modal-field">
-              <label class="rc-modal-label">Event Date</label>
-              <input class="rc-modal-input" id="qDate" type="date">
+              <label class="rc-modal-label">Start Date</label>
+              <input class="rc-modal-input" id="qStartDate" type="date">
+            </div>
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">End Date</label>
+              <input class="rc-modal-input" id="qEndDate" type="date">
+            </div>
+          </div>
+          <div class="rc-modal-row">
+            <div class="rc-modal-field">
+              <label class="rc-modal-label">Hours per day</label>
+              <input class="rc-modal-input" id="qHrsPerDay" type="number" min="1" max="24" placeholder="8">
             </div>
             <div class="rc-modal-field">
               <label class="rc-modal-label">Location</label>
@@ -3016,6 +3026,16 @@ function openQuoteModal() {
   document.getElementById('qSumKWH').textContent = kwhTot.toFixed(0);
   document.getElementById('qSumHrs').textContent = duration;
 
+  // Prefill dates from calculator if set
+  const startEl = document.getElementById('startDate');
+  const endEl   = document.getElementById('endDate');
+  const qStart  = document.getElementById('qStartDate');
+  const qEnd    = document.getElementById('qEndDate');
+  const qHrs    = document.getElementById('qHrsPerDay');
+  if (qStart && startEl?.value) qStart.value = startEl.value;
+  if (qEnd   && endEl?.value)   qEnd.value   = endEl.value;
+  if (qHrs) qHrs.value = hrsPerDay || 8;
+
   // Reset form state
   document.getElementById('quoteForm').style.display = 'block';
   document.getElementById('quoteConfirm').classList.remove('show');
@@ -3078,7 +3098,9 @@ async function submitQuoteForm() {
     email,
     phone,
     company:       document.getElementById('qCompany').value.trim(),
-    eventDate:     document.getElementById('qDate').value,
+    eventStartDate: document.getElementById('qStartDate').value,
+    eventEndDate:   document.getElementById('qEndDate').value,
+    hrsPerDay:      document.getElementById('qHrsPerDay').value || 8,
     eventType,
     location:      document.getElementById('qLocation').value.trim(),
     urgency,
