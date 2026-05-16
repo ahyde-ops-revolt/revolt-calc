@@ -2625,33 +2625,43 @@ function buildAllConfigs(buffKW, kwhTot) {
     });
   }
 
-  // ── 3. Mule + Canavan — only when Mule runtime genuinely needs extension ──
-  // Only show if: Mule is relevant AND runtime would run out without Canavan
+  // ── 3. Mule + Canavan ──
+  // Canavan charge rate: ~200kW per Mule (2 fully drained Mules in 1hr = 400kWh/hr)
+  // For any load under MULE.kw, Canavan charges faster than Mule drains
+  // = effectively unlimited runtime with 1 Mule + Canavan
+  // Show when: 1 Mule covers peak power AND runtime would be insufficient without Canavan
+  const CANAVAN_CHARGE_RATE = 200; // kW charge rate per Mule
   const mlRuntimeCheck = mlN > 0 ? (MULE.kwh * mlN) / buffKW : 999;
-  if (mlN >= 1 && mlN <= GATE.mule && buffKW > WEVOLT.kw * 2 && mlRuntimeCheck < duration) {
-    const cavCycles   = Math.ceil(duration / (MULE.kwh / buffKW * mlN)) - 1;
-    const effectiveKwh = MULE.kwh * mlN + (cavCycles * MULE.kwh * 2); // 1 Canavan recharges 2 Mules
-    const mlCavRuntime = effectiveKwh / buffKW;
-    if (mlCavRuntime > (MULE.kwh * mlN / buffKW) && duration > (MULE.kwh * mlN / buffKW)) {
-      const mlCavFlags = circuitFlagsFor('mule', mlN);
-      const mlCavGated = mlN > GATE.mule;
-      configs.push({
-        id:       'mule_canavan',
-        label:    'Mule + Canavan',
-        wevolts:  0,
-        mules:    mlN,
-        canavan:  true,
-        cavavanCycles: cavCycles,
-        runtime:  mlCavRuntime,
-        sizingBy: 'peak power',
-        concept:  `${mlN} Mule unit${mlN>1?'s':''} with Canavan recharge cycling · ~${cavCycles} recharge cycle${cavCycles>1?'s':''} needed · Effective capacity: ${effectiveKwh.toFixed(0)} kWh`,
-        flags:    mlCavFlags,
-        gated:    mlCavGated,
-        gateMsg:  `For deployments requiring more than ${GATE.mule} Mule units, our team needs to configure your package.`,
-        gateTitle:'Large Mule Deployment',
-        score:    utilScore(buffKW, kwhTot, mlN, MULE.kw, MULE.kwh) + 0.05 // slight bonus for Canavan efficiency
-      });
-    }
+  const canavanNeeded  = mlRuntimeCheck < duration;
+
+  if (buffKW <= MULE.kw && canavanNeeded && buffKW > WEVOLT.kw * 2) {
+    // 1 Mule + Canavan: since charge rate > drain rate for any feasible load,
+    // effective runtime is continuous — no runtime limit
+    const canavanMules  = 1; // Canavan makes 1 Mule sufficient
+    const cavCycles     = Math.max(1, Math.ceil(duration / (MULE.kwh / buffKW)) - 1);
+    const mlCavFlags    = circuitFlagsFor('mule', canavanMules);
+    const mlCavGated    = canavanMules > GATE.mule;
+
+    // Score bonus: Canavan config is more efficient than adding a 2nd Mule
+    // because it achieves same runtime with lower unit count
+    const cavScore = utilScore(buffKW, kwhTot, canavanMules, MULE.kw, MULE.kwh) + 0.25;
+
+    configs.push({
+      id:       'mule_canavan',
+      label:    'Mule + Canavan',
+      wevolts:  0,
+      mules:    canavanMules,
+      canavan:  true,
+      cavavanCycles: cavCycles,
+      runtime:  duration, // Canavan = continuous runtime coverage
+      sizingBy: 'peak power',
+      concept:  `1 Mule unit with Canavan recharge support · Continuous runtime coverage · ~${cavCycles} Canavan cycle${cavCycles>1?'s':''} over ${duration} hrs`,
+      flags:    mlCavFlags,
+      gated:    mlCavGated,
+      gateMsg:  `For deployments requiring more than ${GATE.mule} Mule units, our team needs to configure your package.`,
+      gateTitle:'Large Mule Deployment',
+      score:    cavScore
+    });
   }
 
   // ── 4. WeVolt + Mule — only when load genuinely benefits from mixed approach ──
