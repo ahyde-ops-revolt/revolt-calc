@@ -2344,8 +2344,6 @@ function addCustomToCart(name, watts, qty, conf, geminiData) {
 
   // Log to Sheets with full routing info
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
-    const triggered = geminiData?.trigger || false;
-    const accepted  = triggered ? (geminiData?.accepted === true) : null;
     fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify({
       action:'logCustomInput', sessionId,
       itemName: name,
@@ -2411,7 +2409,6 @@ function setBuffer(pct) {
 // ─────────────────────────────────────────────
 function setDuration(v) {
   duration = parseInt(v);
-  document.getElementById('durVal').innerHTML = `${v} <span>hrs</span>`;
   recalc();
 }
 
@@ -2601,9 +2598,6 @@ function buildAllConfigs(buffKW, kwhTot) {
   }
 
   // ── 2. Mule Only ──
-  // Canavan charge rate: ~200kW per Mule — charges faster than any feasible load drains
-  // So if Canavan is available, runtime is never a limiting factor for Mule sizing
-  const CANAVAN_CHARGE_RATE = 200; // kW per Mule
   const mlP = Math.ceil(buffKW / MULE.kw);
   // For runtime sizing: if 1 Mule covers peak power, Canavan handles runtime
   // Only need more Mules for runtime if load > 1 Mule's peak capacity
