@@ -588,9 +588,9 @@ input[type="range"].rv-hslider::-webkit-slider-thumb{
 .rv-snap-strip span:not(:empty):nth-child(even){color:var(--border-light)}
 
 
-/* Rec tabs */
+/* Rec tabs — sits above the rec box */
 .rv-rec-tabs{
-  display:flex;gap:6px;padding:14px 16px 0;flex-wrap:wrap;
+  display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;
 }
 .rv-rec-tab{
   padding:6px 14px;border-radius:4px;font-size:11px;font-weight:700;
@@ -797,9 +797,9 @@ footer a:hover{color:var(--green)}
     </div>
 
     <!-- Active rec box -->
+    <div class="rv-rec-tabs" id="recTabs" style="display:none"></div>
     <div class="rv-rec-outer" id="recOuter">
       <div class="rv-rec-box green" id="recSingle">
-        <div class="rv-rec-tabs" id="recTabs"></div>
         <div class="rv-rec-overlay" id="recOverlay">
           <div class="rv-rec-overlay-icon">⚡</div>
           <div class="rv-rec-overlay-title" id="recOverlayTitle">Large Deployment</div>
@@ -1696,6 +1696,7 @@ function updateRecBoxes(rawKW,buffKW,kwhTot,demand){
   const outer=document.getElementById('recOuter');
   if(rawKW===0){dormant.style.display='flex';outer.classList.remove('show');allConfigs=[];recIdx=0;return}
   dormant.style.display='none';outer.classList.add('show');
+  document.getElementById('recTabs').style.display='flex';
   allConfigs=buildAllConfigs(buffKW,kwhTot,demand);
   if(recIdx>=allConfigs.length)recIdx=0;
   renderRecBox();
@@ -1714,7 +1715,10 @@ function renderRecBox(){
     if (c.gated)    colorClass = 'red';
     else if (i===0) colorClass = 'green';
     else            colorClass = 'orange';
-    const label = c.gated ? '⚡ Contact Sales' : c.label;
+    let label;
+    if (c.gated)    label = 'Inquiry';
+    else if (i===0) label = 'Recommended';
+    else            label = 'Alternative';
     return `<button class="rv-rec-tab ${isActive ? 'tab-'+colorClass : 'tab-dim'}" onclick="selectRecTab(${i})">${label}</button>`;
   }).join('');
   document.getElementById('recTabs').innerHTML = tabsHTML;
