@@ -1029,7 +1029,11 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQAmM_JUS7zrHD
 const WEVOLT = { kw:12, kwh:17 };
 const MULE   = { kw:160, kwh:200 };
 const GATE   = { wevolt:6, mule:2 };
-const CANAVAN_CHARGE_RATE = 200;
+const CANAVAN_CHARGE_RATE = 200;  // kW charge rate — 1 Mule at a time
+const CANAVAN_CAPACITY    = 410;  // kWh total stored energy
+// Canavan charges 1 Mule at a time: 200kWh / 200kW = 1 hour per full charge
+// Max recharge cycles: floor(410 / 200) = 2 full Mule recharges before Canavan needs fuel
+const CANAVAN_MAX_CYCLES  = Math.floor(CANAVAN_CAPACITY / MULE.kwh); // = 2
 
 // ─────────────────────────────────────────────
 //  CIRCUITS
@@ -1639,10 +1643,27 @@ function buildAllConfigs(buffKW,kwhTot,demand){
   // Mule + Canavan
   const mlRtCheck=mlN>0?(MULE.kwh*mlN)/buffKW:999;
   if(buffKW<=MULE.kw&&mlRtCheck<duration&&buffKW>WEVOLT.kw*2){
-    const cavCycles=Math.max(1,Math.ceil(duration/(MULE.kwh/buffKW))-1);
+    // Canavan charges at 250kW into Mule — net charge rate = 250 - buffKW
+    // For any Mule load ≤160kW, 250kW > load → Canavan always net-positive → continuous runtime
+    const muleRuntime  = MULE.kwh / buffKW;  // hrs before Mule drains alone (no Canavan)
+    const netChargeRate = CANAVAN.chargeRate - buffKW; // kW net gain while Canavan connected
+    // Canavan on-duty time per trip: 410kWh / 250kW = 1.64 hrs before Canavan needs to self-recharge
+    const canavanOnDutyHrs  = CANAVAN.capacity / CANAVAN.chargeRate;  // ~1.64 hrs
+    const canavanOffDutyHrs = CANAVAN.capacity / CANAVAN.selfRecharge; // ~1.17 hrs (self-recharge at fast charger)
+    // Number of Canavan round-trips needed during event
+    const cavCycles    = Math.max(1, Math.ceil(duration / canavanOnDutyHrs));
+    const cavCoversEvent = true; // Always covers event for loads ≤160kW
+    const effectiveRuntime = duration;
+    const muleRechargeTime = (MULE.kwh / CANAVAN.chargeRate).toFixed(1); // ~0.8 hrs from dead, no load
+    const cycleLabel = totalDays > 1
+      ? `${cavCycles} Canavan rotation${cavCycles>1?'s':''} (~${muleRechargeTime} hr Mule recharge each)`
+      : `${cavCycles} Canavan rotation${cavCycles>1?'s':''}`;
+    const cavConcept = `1 Mule + Canavan · Continuous runtime · Canavan charges Mule at 250kW · ${cycleLabel}`;
     configs.push({id:'mule_canavan',label:'Mule + Canavan',wevolts:0,mules:1,canavan:true,
-      cavavanCycles:cavCycles,runtime:duration,sizingBy:'peak power',
-      concept:`1 Mule unit with Canavan recharge support · Continuous runtime coverage · ~${cavCycles} recharge cycle${cavCycles>1?'s':''} over ${duration} hrs`,
+      cavavanCycles:cavCycles,cavavanCyclesPerDay:(cavCycles/Math.max(1,totalDays)),
+      cavCoversEvent,effectiveRuntime,
+      runtime:effectiveRuntime,sizingBy:'peak power',
+      concept:cavConcept,
       flags:circuitFlagsFor('mule',1,demand),
       gated:false,
       score:utilScore(buffKW,kwhTot,1,MULE.kw,MULE.kwh)+0.25});
@@ -1667,12 +1688,17 @@ function buildAllConfigs(buffKW,kwhTot,demand){
 
   // Mixed + Canavan
   if(mxW>=1&&mxM>=1&&showMixed&&mxRt<duration){
-    const mxcCyc=Math.max(1,Math.ceil(duration/(MULE.kwh/buffKW*mxM))-1);
+    // Canavan charges 1 Mule at a time at 250kW, ~0.8hr per dead Mule (no load)
+    // For 2 Mules: Canavan rotates between them — net charge 250-loadPerMule per Mule
+    const mxLoadPerMule  = buffKW / mxM;
+    const mxMuleRuntime  = MULE.kwh / mxLoadPerMule;
+    const mxCavOnDuty    = CANAVAN.capacity / CANAVAN.chargeRate; // 1.64 hrs per Canavan trip
+    const mxcCyc         = Math.max(1, Math.ceil(duration / mxCavOnDuty));
     const mxcRt=(mxM*MULE.kwh*(1+mxcCyc*0.8)+mxW*WEVOLT.kwh)/buffKW;
     const mxcGated=mxM>GATE.mule||mxW>GATE.wevolt;
     configs.push({id:'mixed_canavan',label:'WeVolt + Mule + Canavan',wevolts:mxW,mules:mxM,canavan:true,
       cavavanCycles:mxcCyc,runtime:mxcRt,sizingBy:'peak power',
-      concept:`Mule anchors heavy load · ${mxW} WeVolt${mxW>1?'s':''} cover distributed circuits · Canavan cycling extends runtime continuously`,
+      concept:`${mxM} Mule${mxM>1?'s':''} + Canavan · ${mxW} WeVolt${mxW>1?'s':''} distributed circuits · ~${mxcCyc} recharge cycle${mxcCyc>1?'s':''} · Canavan handles both Mules`,
       flags:circuitFlagsFor('mule',mxM,demand),
       gated:mxcGated,
       gateMsg:'This large-scale deployment requires our team to configure your full power solution.',
@@ -1753,7 +1779,11 @@ function renderRecBox(){
 
   const cavEl=document.getElementById('recCanavan');
   if(cfg.canavan){
-    cavEl.textContent=cfg.cavavanCycles?`⚡ Canavan recharge support · ${cfg.cavavanCycles} cycle${cfg.cavavanCycles>1?'s':''} needed`:'⚡ Canavan recharge support recommended';
+    let cavText = '⚡ Canavan recharge truck';
+    if(cfg.cavavanCycles){
+      cavText += ` · ${cfg.cavavanCycles} rotation${cfg.cavavanCycles>1?'s':''} · ~48 min/Mule recharge at 250kW`;
+    }
+    cavEl.textContent = cavText;
     cavEl.classList.add('show');
   }else{cavEl.classList.remove('show')}
 
