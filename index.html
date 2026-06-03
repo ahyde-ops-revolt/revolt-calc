@@ -1029,11 +1029,16 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQAmM_JUS7zrHD
 const WEVOLT = { kw:12, kwh:17 };
 const MULE   = { kw:160, kwh:200 };
 const GATE   = { wevolt:6, mule:2 };
-const CANAVAN_CHARGE_RATE = 200;  // kW charge rate — 1 Mule at a time
-const CANAVAN_CAPACITY    = 410;  // kWh total stored energy
-// Canavan charges 1 Mule at a time: 200kWh / 200kW = 1 hour per full charge
-// Max recharge cycles: floor(410 / 200) = 2 full Mule recharges before Canavan needs fuel
-const CANAVAN_MAX_CYCLES  = Math.floor(CANAVAN_CAPACITY / MULE.kwh); // = 2
+// Canavan specs (confirmed with Jason)
+const CANAVAN = {
+  chargeRate:   250,  // kW output into Mule — 200kWh / 250kW = ~48 min dead Mule no-load
+  capacity:     410,  // kWh total stored energy
+  selfRecharge: 250,  // kW avg at fast charger (150–350kW depending on location; avg 250kW)
+  // Self-recharge time: 410kWh / 250kW = ~1.64 hrs
+  // Charges 1 Mule at a time — can service 2 Mules sequentially per charge cycle
+};
+const CANAVAN_CHARGE_RATE = CANAVAN.chargeRate;  // legacy alias
+const CANAVAN_CAPACITY    = CANAVAN.capacity;    // legacy alias
 
 // ─────────────────────────────────────────────
 //  CIRCUITS
@@ -1649,12 +1654,12 @@ function buildAllConfigs(buffKW,kwhTot,demand){
     const netChargeRate = CANAVAN.chargeRate - buffKW; // kW net gain while Canavan connected
     // Canavan on-duty time per trip: 410kWh / 250kW = 1.64 hrs before Canavan needs to self-recharge
     const canavanOnDutyHrs  = CANAVAN.capacity / CANAVAN.chargeRate;  // ~1.64 hrs
-    const canavanOffDutyHrs = CANAVAN.capacity / CANAVAN.selfRecharge; // ~1.17 hrs (self-recharge at fast charger)
+    const canavanOffDutyHrs = CANAVAN.capacity / CANAVAN.selfRecharge; // ~1.64 hrs avg (250kW fast charger)
     // Number of Canavan round-trips needed during event
     const cavCycles    = Math.max(1, Math.ceil(duration / canavanOnDutyHrs));
     const cavCoversEvent = true; // Always covers event for loads ≤160kW
     const effectiveRuntime = duration;
-    const muleRechargeTime = (MULE.kwh / CANAVAN.chargeRate).toFixed(1); // ~0.8 hrs from dead, no load
+    const muleRechargeTime = (MULE.kwh / CANAVAN.chargeRate).toFixed(1); // ~0.8 hrs from dead no-load at 250kW
     const cycleLabel = totalDays > 1
       ? `${cavCycles} Canavan rotation${cavCycles>1?'s':''} (~${muleRechargeTime} hr Mule recharge each)`
       : `${cavCycles} Canavan rotation${cavCycles>1?'s':''}`;
