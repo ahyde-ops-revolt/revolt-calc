@@ -578,6 +578,17 @@ input[type="range"].rv-hslider::-webkit-slider-thumb{
 .rv-split > div .rv-rec-outer{flex:1;min-height:200px}
 .rv-split > div .rv-power-panel{flex:1}
 
+
+/* Power Snapshot strip — slim, below readout */
+.rv-snap-strip{
+  margin-top:8px;padding:10px 16px;
+  background:#0a0a0a;border:1px solid var(--border);border-radius:var(--radius-sm);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  font-family:var(--font-mono);font-size:12px;color:var(--text-dim);line-height:1.4;
+}
+.rv-snap-strip strong{color:var(--text-muted)}
+.rv-snap-strip span:not(:empty):nth-child(even){color:var(--border-light)}
+
 /* ── FOOTER ── */
 footer{border-top:1px solid var(--border);padding:16px 24px;text-align:center;color:var(--text-dim);font-size:12px}
 footer a{color:var(--text-dim);text-decoration:none}
@@ -820,11 +831,40 @@ footer a:hover{color:var(--green)}
 </section>
 
 <!-- ═══════════════════════════════════════════
+     SECTION 5 — FINAL READOUT
+═══════════════════════════════════════════ -->
+<section class="rv-section" id="sect-readout">
+  <div class="rv-section-header">
+    <div class="rv-section-num">Your Selection</div>
+    <div class="rv-section-title">Equipment Summary</div>
+    <div class="rv-section-sub">Everything you've selected in one view. Adjust quantities and load levels here — changes sync back to the catalog above.</div>
+  </div>
+  <div id="readoutArea">
+    <div class="rv-readout-empty">No equipment selected yet. Browse the catalog above to get started.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     SECTION 6 — READY TO BOOK
+═══════════════════════════════════════════ -->
+<section class="rv-section" id="sect-book">
+  <div class="rv-checkout">
+    <div class="rv-checkout-left">
+      <h2>Ready to Book?</h2>
+      <p>Submit your configuration and our team will build a custom quote — fast.</p>
+    </div>
+    <div class="rv-checkout-right">
+      <button class="rv-checkout-btn" onclick="openQuoteModal()">Request a Quote →</button>
+      <div class="rv-checkout-sub">or call <a href="tel:4049966496">404-996-6496</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
      SECTION 4 — GENERATOR COMPARISON
 ═══════════════════════════════════════════ -->
 <section class="rv-section" id="sect-gen">
   <div class="rv-section-header">
-    <div class="rv-section-num">Context</div>
     <div class="rv-section-title">vs. Diesel Generator</div>
     <div class="rv-section-sub">See what ReVolt displaces compared to a rental generator running your load.</div>
   </div>
@@ -864,36 +904,6 @@ footer a:hover{color:var(--green)}
         <div class="rv-stat-val zero" id="statHours">—</div>
         <div class="rv-stat-unit">kWh clean energy</div>
       </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════
-     SECTION 5 — FINAL READOUT
-═══════════════════════════════════════════ -->
-<section class="rv-section" id="sect-readout">
-  <div class="rv-section-header">
-    <div class="rv-section-num">Your Selection</div>
-    <div class="rv-section-title">Equipment Summary</div>
-    <div class="rv-section-sub">Everything you've selected in one view. Adjust quantities and load levels here — changes sync back to the catalog above.</div>
-  </div>
-  <div id="readoutArea">
-    <div class="rv-readout-empty">No equipment selected yet. Browse the catalog above to get started.</div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════
-     SECTION 6 — READY TO BOOK
-═══════════════════════════════════════════ -->
-<section class="rv-section" id="sect-book">
-  <div class="rv-checkout">
-    <div class="rv-checkout-left">
-      <h2>Ready to Book?</h2>
-      <p>Submit your configuration and our team will build a custom quote — fast.</p>
-    </div>
-    <div class="rv-checkout-right">
-      <button class="rv-checkout-btn" onclick="openQuoteModal()">Request a Quote →</button>
-      <div class="rv-checkout-sub">or call <a href="tel:4049966496">404-996-6496</a></div>
     </div>
   </div>
 </section>
@@ -1309,6 +1319,38 @@ function effWatts(sel){
 // ─────────────────────────────────────────────
 //  RENDER READOUT
 // ─────────────────────────────────────────────
+
+function buildSnapHTML(totalW) {
+  if (!totalW) return '';
+  const buffKwVal   = totalW * BUFFER / 1000;
+  const perDayKwh   = (buffKwVal * hrsPerDay).toFixed(0);
+  const totalKwhVal = (buffKwVal * duration).toFixed(0);
+
+  // Recharge window info from top config
+  const topCfg = allConfigs[0];
+  let rechargeNote = '';
+  if (topCfg) {
+    if (topCfg.canavan) {
+      rechargeNote = `Canavan recharge · ${topCfg.cavavanCycles || '?'} cycle${(topCfg.cavavanCycles||0)>1?'s':''}/day`;
+    } else if (topCfg.id === 'wevolt' && totalDays > 1) {
+      const offHrs = Math.max(0, 24 - hrsPerDay);
+      rechargeNote = `WeVolt overnight recharge · 208v 1Ph ~4 hrs/unit · ${offHrs} hr off-window available`;
+    } else if (topCfg.id === 'mule' && totalDays > 1) {
+      const daysPerCharge = (topCfg.runtime / hrsPerDay).toFixed(1);
+      rechargeNote = `Mule recharge every ~${daysPerCharge} days`;
+    }
+  }
+
+  const rows = totalDays > 1
+    ? `<span>Per day &nbsp;<strong>${perDayKwh} kWh</strong> · ${hrsPerDay} hrs</span>
+       <span>·</span>
+       <span>Total rental &nbsp;<strong>${totalKwhVal} kWh</strong> · ${totalDays} days · ${duration} hrs</span>
+       ${rechargeNote ? '<span>·</span><span>' + rechargeNote + '</span>' : ''}`
+    : `<span>Single day &nbsp;<strong>${perDayKwh} kWh</strong> · ${hrsPerDay} hrs of operation</span>${rechargeNote ? '<span>·</span><span>' + rechargeNote + '</span>' : ''}`;
+
+  return `<div class="rv-snap-strip">${rows}</div>`;
+}
+
 function renderReadout(){
   const area=document.getElementById('readoutArea');
   const selEntries=Object.entries(selections);
@@ -1393,7 +1435,8 @@ function renderReadout(){
         <span class="rv-readout-total-label">Total${BUFFER_PCT>0?' ('+BUFFER_PCT+'% buffer)':''}</span>
         <span class="rv-readout-total-kw">${totalKw} kW</span>
       </div>
-    </div>`;
+    </div>
+    ${buildSnapHTML(totalW)}`;
 }
 
 function setQtyFromReadout(id,delta){setQty(id,delta)}
@@ -1449,7 +1492,13 @@ function recalc(){
   kwEl.innerHTML=`${buffKW.toFixed(1)} <span class="rv-power-unit">kW</span>`;
   kwEl.className='rv-power-kw '+(rawKW===0?'zero':buffKW<=12?'low':buffKW<=60?'mid':'high');
 
-  document.getElementById('kwhRow').innerHTML=`≈ <strong>${kwhTot.toFixed(0)} kWh</strong> over ${duration} hr${duration!==1?'s':''}`;
+  const perDayKwhDisp = (buffKW * hrsPerDay).toFixed(0);
+  const kwhRowEl = document.getElementById('kwhRow');
+  if (totalDays > 1) {
+    kwhRowEl.innerHTML = `≈ <strong>${perDayKwhDisp} kWh/day</strong> &nbsp;·&nbsp; ${kwhTot.toFixed(0)} kWh total over ${totalDays} days`;
+  } else {
+    kwhRowEl.innerHTML = `≈ <strong>${kwhTot.toFixed(0)} kWh</strong> over ${duration} hr${duration!==1?'s':''}`;
+  }
 
   const bufNote=document.getElementById('bufferNote');
   bufNote.textContent=BUFFER_PCT===0?'No safety buffer applied':`⚠ Includes ${BUFFER_PCT}% safety buffer`;
@@ -1475,6 +1524,9 @@ function recalc(){
 
   // Log
   debouncedLog(buffKW,kwhTot);
+
+  // Re-render readout so power snapshot reflects date/duration changes
+  renderReadout();
 }
 
 // ─────────────────────────────────────────────
@@ -1512,16 +1564,24 @@ function buildAllConfigs(buffKW,kwhTot,demand){
     return 1-Math.abs((pu+Math.min(1,ru))/2-0.85);
   }
 
-  // WeVolt Only
+  // WeVolt Only — size on per-day kWh (WeVolts recharge between days)
+  const perDayKwh = buffKW * hrsPerDay;
   const wvP=Math.ceil(buffKW/WEVOLT.kw);
-  const wvE=Math.ceil(kwhTot/WEVOLT.kwh);
+  const wvE=Math.ceil(perDayKwh/WEVOLT.kwh);
   const wvN=Math.max(wvP,wvE);
   if(wvN>=1){
     const wvRt=(WEVOLT.kwh*wvN)/buffKW;
-    const wvCav=wvRt<duration;
-    configs.push({id:'wevolt',label:'WeVolt Only',wevolts:wvN,mules:0,canavan:wvCav,
+    // WeVolts charge overnight — Canavan not applicable, customer handles recharge
+    const offHoursPerDay = Math.max(0, 24 - hrsPerDay);
+    const wvChargeHrs = 4; // 208v 1Ph @ 50A = ~4 hrs from 0%
+    const wvChargeNote = totalDays > 1
+      ? (offHoursPerDay >= wvChargeHrs
+        ? `Overnight recharge via 208v 1Ph (~${wvChargeHrs} hrs/unit)`
+        : `Recharge requires 208v 1Ph — ${offHoursPerDay} hr off-window may be tight`)
+      : `~${wvRt.toFixed(1)} hr runtime`;
+    configs.push({id:'wevolt',label:'WeVolt Only',wevolts:wvN,mules:0,canavan:false,
       runtime:wvRt,sizingBy:wvP>=wvE?'peak power':'runtime',
-      concept:`${wvN} WeVolt unit${wvN>1?'s':''} · ${wvCav?'Canavan recharge cycling covers full event duration':`~${wvRt.toFixed(1)} hr runtime`}`,
+      concept:`${wvN} WeVolt unit${wvN>1?'s':''} · ${wvRt.toFixed(1)} hr runtime per charge · ${wvChargeNote}`,
       flags:circuitFlagsFor('wevolt',wvN,demand),
       gated:wvN>GATE.wevolt,
       gateMsg:`For deployments requiring more than ${GATE.wevolt} WeVolt units, our team needs to configure your package.`,
@@ -1534,7 +1594,7 @@ function buildAllConfigs(buffKW,kwhTot,demand){
   const mlE_raw=Math.ceil(kwhTot/MULE.kwh);
   const mlE=mlP===1&&mlE_raw>1?1:mlE_raw;
   const mlN=Math.max(mlP,mlE);
-  if(mlN>=1&&(buffKW>WEVOLT.kw*2||wvN>2)){
+  if(mlN>=1){  // Always show Mule as an alternative
     const mlRt=(MULE.kwh*mlN)/buffKW;
     configs.push({id:'mule',label:'Mule Only',wevolts:0,mules:mlN,canavan:false,
       runtime:mlRt,sizingBy:mlP>=mlE?'peak power':'runtime',
@@ -1638,8 +1698,15 @@ function renderRecBox(){
     sep.style.display='';unit2.style.display='flex';
   }
 
-  const perDay=totalDays>1?` · ${(cfg.runtime/totalDays).toFixed(1)} hr/day`:'';
-  document.getElementById('recSub').textContent=`Sized by ${cfg.sizingBy} · ~${cfg.runtime.toFixed(1)} hr total runtime${perDay}`;
+  let recSubText;
+  if (totalDays > 1) {
+    // Show runtime headroom: how many days before recharge needed
+    const daysBeforeRecharge = (cfg.runtime / hrsPerDay).toFixed(1);
+    recSubText = `~${cfg.runtime.toFixed(0)} hr runtime · recharge every ${daysBeforeRecharge} days · Sized by ${cfg.sizingBy}`;
+  } else {
+    recSubText = `Sized by ${cfg.sizingBy} · ~${cfg.runtime.toFixed(1)} hr runtime`;
+  }
+  document.getElementById('recSub').textContent = recSubText;
 
   const cavEl=document.getElementById('recCanavan');
   if(cfg.canavan){
