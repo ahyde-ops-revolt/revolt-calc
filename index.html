@@ -1005,7 +1005,7 @@ footer a:hover{color:var(--green)}
     <div class="rc-modal-confirm" id="quoteConfirm">
       <div class="rc-modal-confirm-icon">⚡</div>
       <div class="rc-modal-confirm-title">Quote Request Sent!</div>
-      <div class="rc-modal-confirm-msg">Our team will reach out within 1 business hour.<br>Feel free to keep refining your load list.</div>
+      <div class="rc-modal-confirm-msg" id="quoteConfirmMsg">Our team will reach out within 1 business hour.<br>Feel free to keep refining your load list.</div>
       <button class="rc-modal-confirm-close" onclick="closeQuoteModalDirect()">Done</button>
     </div>
   </div>
@@ -2056,7 +2056,8 @@ async function submitQuoteForm(){
   const overrideDetails=customs.filter(c=>c.override).map(c=>`${c.name}: entered ${c.watts}W, spec says ${c.geminiWatts}W`).join('; ');
   try{
     if(APPS_SCRIPT_URL&&APPS_SCRIPT_URL!=='YOUR_APPS_SCRIPT_URL_HERE'){
-      await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({
+      // Fire and forget — don't block confirmation on Gemini API calls
+      fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({
         action:'submitQuote',sessionId,name,email,phone,
         company:document.getElementById('qCompany').value.trim(),
         eventStartDate:document.getElementById('qStartDate').value,
@@ -2078,12 +2079,21 @@ async function submitQuoteForm(){
         correctionsAccepted:customs.filter(c=>c.gemini?.accepted).length,
       })});
     }
+    // Show confirmation immediately — don't wait for backend
+    // Set response time based on urgency
+    const urgencyVal = document.getElementById('qUrgency').value;
+    const confirmMsgs = {
+      'ASAP':           'Your request is marked urgent. A sales rep will reach out as soon as they are available.',
+      'This week':      'Our team will follow up within 1 business day.',
+      'This month':     'Our team will follow up within 1 business day.',
+      'Planning ahead': 'Our team will be in touch within 1–2 business days.'
+    };
+    const confirmMsg = confirmMsgs[urgencyVal] || 'Our team will reach out within 1 business hour.';
+    const msgEl = document.getElementById('quoteConfirmMsg');
+    if (msgEl) msgEl.innerHTML = confirmMsg + '<br>Feel free to keep refining your load list.';
+
     document.getElementById('quoteForm').style.display='none';
-    document.getElementById('quoteConfirm').classList.add('show');
-  }catch(e){
-    document.getElementById('quoteForm').style.display='none';
-    document.getElementById('quoteConfirm').classList.add('show');
-  }
+    document.getElementById('quoteConfirm').classList.add('show');}
 }
 
 // ─────────────────────────────────────────────
