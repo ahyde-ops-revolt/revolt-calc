@@ -1873,8 +1873,20 @@ async function submitQuoteForm(){
   errEl.style.display='none';
   const btn=document.getElementById('qSubmitBtn');btn.disabled=true;btn.textContent='Sending...';
   const rawKW=lastRawKW||0,buffKW=rawKW*BUFFER,kwhTot=buffKW*duration;
-  const wvRec=Math.max(Math.ceil(buffKW/WEVOLT.kw),Math.ceil(kwhTot/WEVOLT.kwh));
-  const mlRec=Math.max(Math.ceil(buffKW/MULE.kw),Math.ceil(kwhTot/MULE.kwh));
+  // Per-day sizing — Canavan handles multi-day, so rec is based on one day's kWh
+  const perDayKwh = buffKW * hrsPerDay;
+  const wvRec = Math.max(Math.ceil(buffKW/WEVOLT.kw), Math.ceil(perDayKwh/WEVOLT.kwh));
+  const mlRec = Math.max(Math.ceil(buffKW/MULE.kw),   Math.ceil(perDayKwh/MULE.kwh));
+
+  // Top recommendation from the engine (already Canavan-aware)
+  const topRec = allConfigs.length ? allConfigs[0] : null;
+  const topRecLabel    = topRec ? topRec.label : 'See config';
+  const topRecMules    = topRec ? topRec.mules : mlRec;
+  const topRecWevolts  = topRec ? topRec.wevolts : wvRec;
+  const topRecCanavan  = topRec ? topRec.canavan : false;
+  const topRecCycles   = topRec ? (topRec.cavavanCycles || 0) : 0;
+  const topRecConcept  = topRec ? topRec.concept : '';
+  const topRecRuntime  = topRec ? topRec.runtime.toFixed(1) : '—';
   // Voltage demand summary for Jason
   const voltageDemand={'120v 1Ph':0,'208v 1Ph':0,'208v 3Ph':0,'240v 1Ph':0,'480v 3Ph':0};
   Object.values(selections).forEach(sel=>{
@@ -1903,8 +1915,13 @@ async function submitQuoteForm(){
         eventType,location:document.getElementById('qLocation').value.trim(),
         urgency,existingPower:document.getElementById('qExistingPower').value,
         notes:document.getElementById('qNotes').value.trim(),
-        peakKW:buffKW.toFixed(1),totalKWH:kwhTot.toFixed(0),duration,bufferPct:BUFFER_PCT,
-        wevoltRec:wvRec,muleRec:mlRec,equipmentSummary:fullSummary,
+        peakKW:buffKW.toFixed(1),totalKWH:kwhTot.toFixed(0),
+        duration, hrsPerDay, totalDays, perDayKwh:perDayKwh.toFixed(0),
+        bufferPct:BUFFER_PCT,
+        wevoltRec:wvRec, muleRec:mlRec,
+        topRecLabel, topRecMules, topRecWevolts, topRecCanavan,
+        topRecCycles, topRecConcept, topRecRuntime,
+        equipmentSummary:fullSummary,
         customItemCount:customs.filter(c=>c.name&&c.watts>0).length,
         overrideCount,overrideDetails,
         correctionCount:customs.filter(c=>c.gemini?.trigger).length,
