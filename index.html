@@ -48,16 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
   padding:8px 24px;text-align:center;font-size:12px;color:var(--yellow)}
 @media(max-width:768px){.rv-mobile{display:block}}
 
-/* ── HEADER ── */
-.rv-header{
-  background:rgba(8,8,8,.95);border-bottom:1px solid var(--border);
-  padding:12px 24px;display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);
-}
-.rv-logo-wrap{display:flex;align-items:center;gap:14px}
-.rv-logo{font-family:var(--font-display);font-size:26px;letter-spacing:.12em;line-height:1}
-.rv-logo-div{width:1px;height:20px;background:var(--border-light)}
-.rv-logo-sub{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
+
 .rv-header-phone{font-size:14px;color:var(--text-dim)}
 .rv-header-phone a{color:var(--text-muted);text-decoration:none}
 
@@ -619,6 +610,14 @@ input[type="range"].rv-hslider::-webkit-slider-thumb{
   text-align:right;line-height:1.6;
 }
 
+
+/* Industry average estimate badge */
+.rv-item-est{
+  font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#888;background:#1a1a1a;border:1px solid #2a2a2a;
+  border-radius:3px;padding:1px 4px;vertical-align:middle;
+}
+
 /* ── FOOTER ── */
 footer{border-top:1px solid var(--border);padding:16px 24px;text-align:center;color:var(--text-dim);font-size:12px}
 footer a{color:var(--text-dim);text-decoration:none}
@@ -642,14 +641,7 @@ footer a:hover{color:var(--green)}
 <div class="rv-mobile">📱 Best experienced on desktop — mobile view coming soon.</div>
 
 <!-- HEADER -->
-<header class="rv-header">
-  <div class="rv-logo-wrap">
-    <div class="rv-logo">REVOLT</div>
-    <div class="rv-logo-div"></div>
-    <div class="rv-logo-sub">Power Calculator</div>
-  </div>
-  <div class="rv-header-phone">Questions? <a href="tel:4049966496">404-996-6496</a></div>
-</header>
+
 
 <!-- FLOATING QUOTE BUTTON -->
 <div class="rv-float" id="floatCta">
@@ -685,7 +677,7 @@ footer a:hover{color:var(--green)}
 
   <!-- Disclaimer -->
   <div class="rv-disclaimer">
-    <strong>Wattage notice:</strong> Catalog wattages are estimates based on manufacturer specs and verified sources. It is the responsibility of the customer to confirm specifications directly with their equipment supplier.
+    <strong>Wattage notice:</strong> Catalog wattages are based on manufacturer specs and verified sources. Items marked <span class="rv-item-est">~est.</span> use industry average values. Confirm specifications with your equipment supplier.
   </div>
 
   <!-- Catalog list -->
@@ -1236,6 +1228,8 @@ function renderItemHTML(item){
   const effW=hasQty&&isVariable?Math.round(maxW*(loadPct/100)):maxW;
   const effKw=(effW/1000).toFixed(1);
   const dispW=maxW>=1000?(maxW/1000).toFixed(1)+'kW':maxW+'W';
+  const src=String(item['Source']||item['source']||'').toLowerCase();
+  const isEstimate=src.includes('industry average')||src.includes('estimate');
 
   const sliderBg=`linear-gradient(to right,var(--green) ${loadPct}%,var(--border-light) ${loadPct}%)`;
 
@@ -1244,7 +1238,7 @@ function renderItemHTML(item){
       <div class="rv-item-check"><span class="rv-item-check-tick">✓</span></div>
       <div class="rv-item-info">
         <div class="rv-item-name">${item['Item Name']}</div>
-        <div class="rv-item-meta">${dispW} per unit${hasQty&&isVariable?` · <span class="rv-item-eff">${effW}W effective @ ${loadPct}%</span>`:''}</div>
+        <div class="rv-item-meta">${dispW} per unit${isEstimate?' <span class="rv-item-est">~est.</span>':''}${hasQty&&isVariable?` · <span class="rv-item-eff">${effW}W effective @ ${loadPct}%</span>`:''}</div>
       </div>
       ${hasQty?`
       <div class="rv-qty" onclick="event.stopPropagation()">
@@ -1314,6 +1308,8 @@ function setLoadPct(id,pct,sliderEl){
     const meta=el.querySelector('.rv-item-meta');
     if(meta){
       const dispW=maxW>=1000?(maxW/1000).toFixed(1)+'kW':maxW+'W';
+  const src=String(item['Source']||item['source']||'').toLowerCase();
+  const isEstimate=src.includes('industry average')||src.includes('estimate');
       meta.innerHTML=`${dispW} per unit · <span class="rv-item-eff">${effW}W effective @ ${pct}%</span>`;
     }
     const kwEl=el.querySelector('.rv-item-kw');
@@ -1400,6 +1396,7 @@ function renderReadout(){
         <div class="rv-readout-name" style="display:flex;align-items:center;gap:6px">
           <span style="width:4px;height:4px;border-radius:50%;background:${col};flex-shrink:0;display:inline-block"></span>
           ${item['Item Name']}
+          ${(()=>{const s=String(item['Source']||'').toLowerCase();return(s.includes('industry average')||s.includes('estimate'))?'<span class="rv-item-est">~est.</span>':''})()}
         </div>
         <div class="rv-readout-tag">${item.Category||''}</div>
         ${isVariable?`
