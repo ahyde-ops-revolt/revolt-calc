@@ -2090,7 +2090,11 @@ async function submitQuoteForm(){
     if (msgEl) msgEl.innerHTML = confirmMsg + '<br>Feel free to keep refining your load list.';
 
     document.getElementById('quoteForm').style.display='none';
-    document.getElementById('quoteConfirm').classList.add('show');}
+    document.getElementById('quoteConfirm').classList.add('show');
+  } catch(e) {
+    document.getElementById('quoteForm').style.display='none';
+    document.getElementById('quoteConfirm').classList.add('show');
+  }
 }
 
 // ─────────────────────────────────────────────
