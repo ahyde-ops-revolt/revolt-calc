@@ -1,9 +1,12 @@
 <!--
   ReVolt Power Calculator
-  Version: 21.2
+  Version: 21.3
   Date: June 2026
 
   Changelog:
+  v21.3 - Fixed mixed-deployment sizing math:
+        - WeVolt count now uses per-day energy + peak remainder (was total event energy)
+        - Mixed only appears when a single Mule can't cover the day's peak/energy
   v21.2 - Added "Clear Calculator" button (Step 01 header):
         - Resets selections, customs, filters, search, dates, hours, buffer to defaults
         - Re-renders to a fresh-load state; keeps the session id for analytics continuity
@@ -1733,11 +1736,14 @@ function buildAllConfigs(buffKW,kwhTot,demand){
       score:utilScore(buffKW,kwhTot,1,MULE.kw,MULE.kwh)+0.25});
   }
 
-  // Mixed
+  // Mixed — Mule anchors peak, WeVolts cover the PER-DAY remainder (units recharge between days)
   const mxM=Math.max(1,Math.ceil(buffKW/MULE.kw));
-  const mxW=Math.max(1,Math.ceil(Math.max(0,kwhTot-mxM*MULE.kwh)/WEVOLT.kwh));
+  const mxRemPeak=Math.max(0,buffKW-mxM*MULE.kw);
+  const mxRemEnergy=Math.max(0,perDayKwh-mxM*MULE.kwh);
+  const mxW=Math.max(Math.ceil(mxRemPeak/WEVOLT.kw),Math.ceil(mxRemEnergy/WEVOLT.kwh));
   const mxRt=(mxM*MULE.kwh+mxW*WEVOLT.kwh)/buffKW;
-  const showMixed=buffKW>MULE.kw*0.4||wvN>=4;
+  // Only offer mixed when a single Mule can't cover the day and WeVolts genuinely add capacity
+  const showMixed=mxW>=1;
   if(mxW>=1&&mxM>=1&&showMixed){
     const mxGated=mxM>GATE.mule||mxW>GATE.wevolt;
     configs.push({id:'mixed',label:'WeVolt + Mule',wevolts:mxW,mules:mxM,canavan:false,
