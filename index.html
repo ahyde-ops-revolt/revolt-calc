@@ -1,9 +1,12 @@
 <!--
   ReVolt Power Calculator
-  Version: 21.3
+  Version: 21.4
   Date: June 2026
 
   Changelog:
+  v21.4 - Mule-only alternative is now conditional:
+        - Shows once a WeVolt build needs 2+ units, or when 240v/480v demand requires a Mule
+        - A single WeVolt that covers the load (distro handles outlet count) gets no Mule tab
   v21.3 - Fixed mixed-deployment sizing math:
         - WeVolt count now uses per-day energy + peak remainder (was total event energy)
         - Mixed only appears when a single Mule can't cover the day's peak/energy
@@ -1690,12 +1693,16 @@ function buildAllConfigs(buffKW,kwhTot,demand){
       score:utilScore(buffKW,kwhTot,wvN,WEVOLT.kw,WEVOLT.kwh)});
   }
 
-  // Mule Only
+  // Mule Only — surfaces once a WeVolt build needs 2+ units, or when the load needs a
+  // voltage a WeVolt can't provide (240v / 480v). A single WeVolt that covers the load
+  // and its connections (distro handles outlet count) gets no Mule tab.
+  const muleVoltageReq=(demand['240v 1Ph']||0)>0||(demand['480v 3Ph']||0)>0;
+  const showMule=wvN>=2||muleVoltageReq;
   const mlP=Math.ceil(buffKW/MULE.kw);
   const mlE_raw=Math.ceil(kwhTot/MULE.kwh);
   const mlE=mlP===1&&mlE_raw>1?1:mlE_raw;
   const mlN=Math.max(mlP,mlE);
-  if(mlN>=1){  // Always show Mule as an alternative
+  if(mlN>=1&&showMule){
     const mlRt=(MULE.kwh*mlN)/buffKW;
     configs.push({id:'mule',label:'Mule Only',wevolts:0,mules:mlN,canavan:false,
       runtime:mlRt,sizingBy:mlP>=mlE?'peak power':'runtime',
