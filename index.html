@@ -1,9 +1,18 @@
 <!--
   ReVolt Power Calculator
-  Version: 21.4
+  Version: 21.6
   Date: June 2026
 
   Changelog:
+  v21.6 - Canavan trigger tied to the Mule's 10% reserve:
+        - Mule + Canavan shows only when a day's energy would draw a single Mule below 10% (>180 kWh)
+        - Standalone Mule shows only when it can run a day staying above that 10% reserve
+  v21.5 - Test-run fixes:
+        - Equipment Summary sliders now drag smoothly (no longer rebuild the table mid-drag)
+        - Canavan rotations are per-day energy based, not total event hours (312kWh/day = 1/day)
+        - Bare Mule-only hidden when one Mule can't cover a day's energy (that case is Mule + Canavan)
+        - Collapsed duplicate Inquiry tabs that had identical unit counts
+        - Rebalanced the diesel-generator comparison (larger stat widgets and selector)
   v21.4 - Mule-only alternative is now conditional:
         - Shows once a WeVolt build needs 2+ units, or when 240v/480v demand requires a Mule
         - A single WeVolt that covers the load (distro handles outlet count) gets no Mule tab
@@ -456,28 +465,28 @@ input[type="range"].rv-hslider::-webkit-slider-thumb{
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   padding:20px;
 }
-.rv-gen-inner{display:grid;grid-template-columns:110px 1fr 1fr 1fr 1fr;gap:12px;align-items:stretch}
+.rv-gen-inner{display:grid;grid-template-columns:150px 1fr 1fr 1fr 1fr;gap:14px;align-items:stretch}
 .rv-gen-selector{
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;
-  padding:10px 8px;background:#0d0d0d;border:1px solid var(--border);border-radius:var(--radius-sm);gap:4px;
+  padding:16px 12px;background:#0d0d0d;border:1px solid var(--border);border-radius:var(--radius-sm);gap:8px;
 }
-.rv-gen-sel-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);text-align:center}
+.rv-gen-sel-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);text-align:center}
 .rv-gen-arrow{
-  width:26px;height:22px;background:#1a1a1a;border:1px solid var(--border-light);
-  border-radius:4px;color:var(--text-muted);font-size:9px;cursor:pointer;
+  width:32px;height:28px;background:#1a1a1a;border:1px solid var(--border-light);
+  border-radius:4px;color:var(--text-muted);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:all .12s;
 }
 .rv-gen-arrow:hover{background:var(--green-dim);color:var(--green);border-color:var(--green-mid)}
-.rv-gen-name{font-family:var(--font-display);font-size:18px;letter-spacing:.04em;color:var(--text);text-align:center;line-height:1.1}
-.rv-gen-rate{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-align:center}
-.rv-gen-idx{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);text-align:center}
+.rv-gen-name{font-family:var(--font-display);font-size:26px;letter-spacing:.04em;color:var(--text);text-align:center;line-height:1.05}
+.rv-gen-rate{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-align:center}
+.rv-gen-idx{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-align:center}
 .rv-stat-card{
   background:#0d0d0d;border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:12px 14px;display:flex;flex-direction:column;gap:3px;
+  padding:18px 18px;display:flex;flex-direction:column;gap:6px;min-width:0;
 }
-.rv-stat-icon{font-size:14px;margin-bottom:2px}
-.rv-stat-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
-.rv-stat-val{font-family:var(--font-display);font-size:26px;line-height:1;color:var(--green);transition:color .3s}
+.rv-stat-icon{font-size:22px;margin-bottom:4px}
+.rv-stat-label{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim)}
+.rv-stat-val{font-family:var(--font-display);font-size:40px;line-height:1;color:var(--green);transition:color .3s}
 .rv-stat-val.zero{color:var(--border-light)}
 .rv-stat-unit{font-family:var(--font-mono);font-size:12px;color:var(--text-dim)}
 
@@ -1420,7 +1429,8 @@ function buildSnapHTML(totalW) {
   let rechargeNote = '';
   if (topCfg) {
     if (topCfg.canavan) {
-      rechargeNote = `Canavan recharge · ${topCfg.cavavanCycles || '?'} cycle${(topCfg.cavavanCycles||0)>1?'s':''}/day`;
+      const perDayCav = Math.max(1, Math.round(topCfg.cavavanCyclesPerDay || 0));
+      rechargeNote = `Canavan recharge · ${perDayCav} recharge${perDayCav>1?'s':''}/day`;
     } else if (topCfg.id === 'wevolt' && totalDays > 1) {
       const offHrs = Math.max(0, 24 - hrsPerDay);
       rechargeNote = `WeVolt overnight recharge · 208v 1Ph ~4 hrs/unit · ${offHrs} hr off-window available`;
@@ -1469,10 +1479,11 @@ function renderReadout(){
         <div class="rv-readout-tag">${item.Category||''}</div>
         ${isVariable?`
         <div style="margin-top:5px;display:flex;align-items:center;gap:8px">
-          <span style="font-size:10px;color:var(--yellow);font-family:var(--font-mono)">${loadPct}% load · ${effW}W eff.</span>
+          <span class="rv-readout-loadtxt" style="font-size:10px;color:var(--yellow);font-family:var(--font-mono)">${loadPct}% load · ${effW}W eff.</span>
           <input type="range" class="rv-readout-slider" min="0" max="100" value="${loadPct}"
             style="flex:1;background:${sliderBg}"
-            oninput="setLoadPctFromReadout('${id}',+this.value,this)">
+            oninput="setLoadPctFromReadout('${id}',+this.value,this)"
+            onchange="renderReadout()">
         </div>`:''}
       </div>
       <div></div>
@@ -1533,24 +1544,40 @@ function setQtyFromReadout(id,delta){setQty(id,delta)}
 function setLoadPctFromReadout(id,pct,sliderEl){
   if(!selections[id])return;
   selections[id].loadPct=pct;
-  // Sync slider gradient
+  const item=selections[id].item;
+  const maxW=parseFloat(item.Watts)||0;
+  const effW=Math.round(maxW*(pct/100));
+  const qty=selections[id].qty;
+  // Update the dragged row in place — rebuilding the whole table mid-drag kills the slider
   if(sliderEl){
     sliderEl.style.background=`linear-gradient(to right,var(--green) ${pct}%,#2a2a2a ${pct}%)`;
+    const row=sliderEl.closest('.rv-readout-row');
+    if(row){
+      const txt=row.querySelector('.rv-readout-loadtxt');
+      if(txt)txt.textContent=`${pct}% load · ${effW}W eff.`;
+      const kwc=row.querySelector('.rv-readout-kw');
+      if(kwc)kwc.textContent=`${(effW*qty/1000).toFixed(2)} kW`;
+    }
   }
-  // Update catalog item too
+  // Sync the matching catalog slider
   const catSlider=document.querySelector(`#item-${id} .rv-load-slider`);
-  if(catSlider){
-    catSlider.value=pct;
-    catSlider.style.setProperty('--pct',pct+'%');
+  if(catSlider){catSlider.value=pct;catSlider.style.setProperty('--pct',pct+'%');}
+  // Update the footer total in place
+  const totEl=document.querySelector('.rv-readout-total-kw');
+  if(totEl){
+    let totalW=0;
+    Object.values(selections).forEach(s=>{totalW+=effWatts(s)*s.qty});
+    customs.filter(c=>c.name&&c.watts>0).forEach(c=>{totalW+=c.watts*(c.qty||1)});
+    totEl.textContent=`${(totalW*BUFFER/1000).toFixed(1)} kW`;
   }
-  recalc();
-  renderReadout();
+  // Live power + recommendation update, but skip the readout rebuild (keeps the slider draggable)
+  recalc(true);
 }
 
 // ─────────────────────────────────────────────
 //  RECALC
 // ─────────────────────────────────────────────
-function recalc(){
+function recalc(skipReadout){
   let totalW=0;
   const catTotals={};
   const demand={'120v 1Ph':0,'208v 1Ph':0,'208v 3Ph':0,'240v 1Ph':0,'480v 3Ph':0};
@@ -1630,7 +1657,7 @@ function recalc(){
   debouncedLog(buffKW,kwhTot);
 
   // Re-render readout so power snapshot reflects date/duration changes
-  renderReadout();
+  if(!skipReadout) renderReadout();
 }
 
 // ─────────────────────────────────────────────
@@ -1696,13 +1723,17 @@ function buildAllConfigs(buffKW,kwhTot,demand){
   // Mule Only — surfaces once a WeVolt build needs 2+ units, or when the load needs a
   // voltage a WeVolt can't provide (240v / 480v). A single WeVolt that covers the load
   // and its connections (distro handles outlet count) gets no Mule tab.
+  // Only show it STANDALONE if the Mule(s) cover a day's energy on their own; if a day
+  // needs more than a Mule holds, the answer is Mule + Canavan, not a bare Mule.
   const muleVoltageReq=(demand['240v 1Ph']||0)>0||(demand['480v 3Ph']||0)>0;
   const showMule=wvN>=2||muleVoltageReq;
   const mlP=Math.ceil(buffKW/MULE.kw);
   const mlE_raw=Math.ceil(kwhTot/MULE.kwh);
   const mlE=mlP===1&&mlE_raw>1?1:mlE_raw;
   const mlN=Math.max(mlP,mlE);
-  if(mlN>=1&&showMule){
+  // "Covers a day" = runs the day staying above its 10% reserve; below that it needs a Canavan.
+  const muleCoversDay=(MULE.kwh*0.90*mlN)>=perDayKwh;
+  if(mlN>=1&&showMule&&muleCoversDay){
     const mlRt=(MULE.kwh*mlN)/buffKW;
     configs.push({id:'mule',label:'Mule Only',wevolts:0,mules:mlN,canavan:false,
       runtime:mlRt,sizingBy:mlP>=mlE?'peak power':'runtime',
@@ -1714,9 +1745,10 @@ function buildAllConfigs(buffKW,kwhTot,demand){
       score:utilScore(buffKW,kwhTot,mlN,MULE.kw,MULE.kwh)});
   }
 
-  // Mule + Canavan
-  const mlRtCheck=mlN>0?(MULE.kwh*mlN)/buffKW:999;
-  if(buffKW<=MULE.kw&&mlRtCheck<duration&&buffKW>WEVOLT.kw*2){
+  // Mule + Canavan — bring the Canavan only when a single Mule would be drawn down into its
+  // bottom 10% over a day. Off-hours recharge between days is handled on the sales call.
+  const muleUsablePerDay = MULE.kwh * 0.90;   // 180 kWh before hitting the 10% reserve
+  if(buffKW<=MULE.kw && perDayKwh>muleUsablePerDay){
     // Canavan charges at 250kW into Mule — net charge rate = 250 - buffKW
     // For any Mule load ≤160kW, 250kW > load → Canavan always net-positive → continuous runtime
     const muleRuntime  = MULE.kwh / buffKW;  // hrs before Mule drains alone (no Canavan)
@@ -1724,8 +1756,10 @@ function buildAllConfigs(buffKW,kwhTot,demand){
     // Canavan on-duty time per trip: 410kWh / 250kW = 1.64 hrs before Canavan needs to self-recharge
     const canavanOnDutyHrs  = CANAVAN.capacity / CANAVAN.chargeRate;  // ~1.64 hrs
     const canavanOffDutyHrs = CANAVAN.capacity / CANAVAN.selfRecharge; // ~1.64 hrs avg (250kW fast charger)
-    // Number of Canavan round-trips needed during event
-    const cavCycles    = Math.max(1, Math.ceil(duration / canavanOnDutyHrs));
+    // Mule recharges needed per day = days of energy beyond the Mule's own one charge,
+    // then across the whole job. 200kWh Mule, so 312kWh/day = 1 recharge/day.
+    const cavRechargesPerDay = Math.max(0, Math.ceil(perDayKwh / MULE.kwh) - 1);
+    const cavCycles    = Math.max(1, cavRechargesPerDay * Math.max(1, totalDays));
     const cavCoversEvent = true; // Always covers event for loads ≤160kW
     const effectiveRuntime = duration;
     const muleRechargeTime = (MULE.kwh / CANAVAN.chargeRate).toFixed(1); // ~0.8 hrs from dead no-load at 250kW
@@ -1769,8 +1803,8 @@ function buildAllConfigs(buffKW,kwhTot,demand){
     // For 2 Mules: Canavan rotates between them — net charge 250-loadPerMule per Mule
     const mxLoadPerMule  = buffKW / mxM;
     const mxMuleRuntime  = MULE.kwh / mxLoadPerMule;
-    const mxCavOnDuty    = CANAVAN.capacity / CANAVAN.chargeRate; // 1.64 hrs per Canavan trip
-    const mxcCyc         = Math.max(1, Math.ceil(duration / mxCavOnDuty));
+    const mxcRechargesPerDay = Math.max(0, Math.ceil(perDayKwh / (mxM*MULE.kwh)) - 1);
+    const mxcCyc             = Math.max(1, mxcRechargesPerDay * Math.max(1, totalDays));
     const mxcRt=(mxM*MULE.kwh*(1+mxcCyc*0.8)+mxW*WEVOLT.kwh)/buffKW;
     const mxcGated=mxM>GATE.mule||mxW>GATE.wevolt;
     configs.push({id:'mixed_canavan',label:'WeVolt + Mule + Canavan',wevolts:mxW,mules:mxM,canavan:true,
@@ -1783,10 +1817,11 @@ function buildAllConfigs(buffKW,kwhTot,demand){
       score:utilScore(buffKW,kwhTot,mxM+mxW*0.5,MULE.kw,MULE.kwh)+0.1});
   }
 
-  // Dedup + sort
+  // Dedup + sort.  For gated (Inquiry) configs, collapse by unit count regardless of the
+  // Canavan flag, so we don't show two identical "Large Deployment" inquiries.
   const seen=new Set();
   const deduped=configs.filter(c=>{
-    const k=`${c.wevolts}-${c.mules}-${c.canavan}`;
+    const k=c.gated?`g-${c.wevolts}-${c.mules}`:`${c.wevolts}-${c.mules}-${c.canavan}`;
     if(seen.has(k))return false;seen.add(k);return true;
   });
   const valid=deduped.filter(c=>!c.gated).sort((a,b)=>b.score-a.score);
