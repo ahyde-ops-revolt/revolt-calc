@@ -1,9 +1,17 @@
 <!--
   ReVolt Power Calculator
-  Version: 21.0
+  Version: 21.2
   Date: June 2026
 
   Changelog:
+  v21.2 - Added "Clear Calculator" button (Step 01 header):
+        - Resets selections, customs, filters, search, dates, hours, buffer to defaults
+        - Re-renders to a fresh-load state; keeps the session id for analytics continuity
+  v21.1 - Embed mode for Squarespace single-scroll:
+        - Reports content height to parent (kills inner scrollbar)
+        - Re-pins floating CTA + quote modal to the visible viewport
+        - Caps catalog list as a scroll box; locks parent scroll on modal open
+        - Only active when loaded in an iframe (standalone view unchanged)
   v21.0 - Full UX rebuild: vertical scroll, guided sections
         - Inline quantity picker + variable load slider per catalog item
         - Unified selection state (selections obj replaces cart)
@@ -125,6 +133,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
   font-size:11px;font-weight:600;color:var(--green);background:var(--green-dim);
   cursor:pointer;transition:all .15s;
 }
+/* Clear Calculator (master reset) */
+.rv-clear-calc{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:6px;
+  background:transparent;border:1px solid var(--border-light);border-radius:6px;
+  color:var(--text-muted);font-family:var(--font-body);font-size:13px;font-weight:600;
+  letter-spacing:.02em;padding:8px 14px;cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.rv-clear-calc:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.06)}
+.rv-clear-calc .rv-clear-ico{font-size:15px;line-height:1}
 .rv-search-wrap{display:flex;align-items:center;gap:10px;background:#1a1a1a;border:1px solid #3a3a3a;border-left:3px solid var(--green);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;transition:border-color .15s}
 .rv-search-input{
   flex:1;background:transparent;border:none;outline:none;
@@ -659,10 +676,15 @@ footer a:hover{color:var(--green)}
      SECTION 1 — EQUIPMENT CATALOG
 ═══════════════════════════════════════════ -->
 <section class="rv-section" id="sect-catalog">
-  <div class="rv-section-header">
-    <div class="rv-section-num">Step 01</div>
-    <div class="rv-section-title">What are you powering?</div>
-    <div class="rv-section-sub">Select your equipment below. Adjust quantities with +/− and set the expected load level for dimmable items using the slider. Don't see your equipment? Add it at the bottom.</div>
+  <div class="rv-section-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+    <div>
+      <div class="rv-section-num">Step 01</div>
+      <div class="rv-section-title">What are you powering?</div>
+      <div class="rv-section-sub">Select your equipment below. Adjust quantities with +/− and set the expected load level for dimmable items using the slider. Don't see your equipment? Add it at the bottom.</div>
+    </div>
+    <button class="rv-clear-calc" onclick="clearCalculator()" title="Reset everything to default">
+      <span class="rv-clear-ico">↺</span> Clear Calculator
+    </button>
   </div>
 
   <!-- Filter chips -->
@@ -1173,6 +1195,46 @@ function renderChips(){
 }
 function toggleChip(i){activeChips.has(i)?activeChips.delete(i):activeChips.add(i);renderChips();renderCatalog()}
 function clearChips(){activeChips.clear();renderChips();renderCatalog()}
+
+// ─────────────────────────────────────────────
+//  CLEAR CALCULATOR (master reset → fresh-load state)
+// ─────────────────────────────────────────────
+function clearCalculator(){
+  // wipe all state back to defaults
+  selections={};
+  customs=[]; customIdx=0;
+  activeChips.clear();
+  searchQuery='';
+  BUFFER_PCT=0; BUFFER=1.0;
+  hrsPerDay=8; totalDays=1; duration=8;
+  genIdx=0; autoGenSet=false;
+  allConfigs=[]; recIdx=0;
+  lastRawKW=0; lastKwhTot=0;
+
+  // reset form inputs
+  const si=document.getElementById('searchInput'); if(si) si.value='';
+  const sd=document.getElementById('startDate');   if(sd) sd.value='';
+  const ed=document.getElementById('endDate');      if(ed) ed.value='';
+  const ds=document.getElementById('durSlider');    if(ds) ds.value=8;
+  const hd=document.getElementById('hrsDisplay');   if(hd) hd.innerHTML='8 <small>hrs/day</small>';
+
+  // reset the custom panel (close + clear fields)
+  clearCustomForm();
+  const cp=document.getElementById('customPanel');      if(cp) cp.classList.remove('open');
+  const cti=document.getElementById('customToggleIcon');if(cti) cti.textContent='▼';
+
+  // reset the recommendation tabs strip
+  const rt=document.getElementById('recTabs'); if(rt){ rt.style.display='none'; rt.innerHTML=''; }
+
+  // re-render everything to the default view
+  renderChips();
+  renderCatalog();
+  renderCustomList();
+  renderGenDisplay();
+  updateDurSummary();
+  recalc();                       // recalc() also re-renders the readout
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
 // ─────────────────────────────────────────────
 //  FILTER
@@ -2121,5 +2183,56 @@ function debouncedLog(buffKW,kwhTot){
 // GO
 init();
 </script>
+
+<!-- ═══════════════════════════════════════════
+     EMBED MODE — single-scroll Squarespace support
+     Only runs inside an iframe. Standalone view is unchanged.
+═══════════════════════════════════════════ -->
+<script>
+(function(){
+  if (window.parent === window) return;        // only runs when embedded
+  var TARGET = '*';                            // can lock to 'https://revoltfuel.com'
+
+  var floatEl = document.getElementById('floatCta');
+  var modalEl = document.getElementById('quoteModalOverlay');
+  var catEl   = document.getElementById('catalogPanel');
+  var vTop = 0, vH = window.innerHeight;
+
+  // 1. Report content height so the page sizes the iframe to fit (kills inner scroll)
+  function postHeight(){
+    var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    window.parent.postMessage({ rvHeight: h }, TARGET);
+  }
+  var raf;
+  function queueHeight(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(postHeight); }
+  window.addEventListener('load', queueHeight);
+  if (window.ResizeObserver) new ResizeObserver(queueHeight).observe(document.body);
+  setTimeout(queueHeight, 1500);
+  setTimeout(queueHeight, 3500);
+
+  // 2. Pin the floating CTA + quote modal to the part of the page that is visible
+  function applyViewport(){
+    if (floatEl){ floatEl.style.position='absolute'; floatEl.style.top=(vTop+16)+'px'; floatEl.style.right='24px'; }
+    if (modalEl){ modalEl.style.position='absolute'; modalEl.style.top=vTop+'px'; modalEl.style.bottom='auto'; modalEl.style.left='0'; modalEl.style.right='0'; modalEl.style.height=vH+'px'; }
+    if (catEl){ catEl.style.maxHeight = Math.round(vH*0.62)+'px'; }   // keep catalog a scroll box
+  }
+  window.addEventListener('message', function(e){
+    if (!e.data || typeof e.data.rvViewportTop !== 'number') return;
+    vTop = e.data.rvViewportTop;
+    vH   = e.data.rvViewportH || vH;
+    applyViewport();
+  });
+
+  // 3. Lock the page scroll while the quote modal is open
+  if (modalEl){
+    new MutationObserver(function(){
+      var open = modalEl.classList.contains('open');
+      if (open) applyViewport();
+      window.parent.postMessage({ rvModal: open ? 'open' : 'close' }, TARGET);
+    }).observe(modalEl, { attributes:true, attributeFilter:['class'] });
+  }
+})();
+</script>
+
 </body>
 </html>
